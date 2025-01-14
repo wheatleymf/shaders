@@ -1,0 +1,63 @@
+<div class="ArticleHeader">
+    <div class="icon">
+        <span class="material-symbols-sharp">auto_read_pause</span>
+    </div>
+    <div class="description">
+        <span>shader fundamentals</span>
+        <h1>Before you start</h1>
+    </div>
+</div>
+<div class="Article">
+    <p>
+        This is the beginning of a <b>Shader Fundamentals</b> course. Before we start, it's important to note some stuff first.
+        This course will be painfully obvious, and some things will be explained with unholy amount of detail - I am expecting that you 
+        have nearly zero understanding of shaders. This is a very early iteration of this course, and some things may be incorrect, or poorly 
+        written - please be patient as I try to polish this thing. 
+    </p>
+    <h2>References</h2>
+    <p>
+        If you plan to continue learning shaders on your own, you must know where you can find references for s&box shaders. There's no Intellisense 
+        so I highly recommend looking up existing code. 
+        
+        <ul>
+            <li><b>s&box shaders location:</b> <string>Steam/steamapps/common/sbox/addons/base/assets/shaders</string></li>
+            <li>
+                <a href="https://docs.facepunch.com/s/sbox-dev/doc/shaders-oRSxPSL2n6">s&box Documentation on shaders</a>.
+                This documentation covers lots of s&box shader API, helper functions and other useful things.
+            </li>
+            <li><a href="https://wiki.facepunch.com/sbox/AnatomyOfVFX">s&box wiki</a>. It isn't always up-to-date, but it never hurts to check it out.</li>
+        </ul>
+
+        You probably already know about websites like <b>The Book of Shaders</b> or <b>Shadertoy</b> so I won't suggest them here. 
+        Microsoft also provides a <a href="https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-language-syntax">complete documentation</a> for nearly everything what HLSL has. This probably won't be very useful for you as a beginner, but once you figure out the basics I recommend 
+        visiting it for any specific things. 
+    </p>
+    <p>
+        Default lighting model that s&box uses relies on <b>PBR</b>, aka <b>Physically Based Rendering</b>. This means that you should probably be 
+        familiar with default artist's PBR workflow, understanding why do you need such texture maps as albedo, roughness, normals, metalness, etc...
+        If you'd like to get extremely nerdy about it, <b><a href="https://pbr-book.org/">"PBR Book"</a></b> should be very helpful. 
+    </p>
+    <p>
+        And another tip: take your time. If something isn't clicking in your head and you can't figure out some concept, try again later.
+        Learning new things can fuck with your sanity, and sometimes the best solution is just coming back to it later.
+    </p>
+    <h2>Do I need to understand programming?</h2>
+    <p>
+        Yeah. HLSL isn't a good language to start your programming adventures. If you have some experience with C#, you should feel comfortable 
+        with 99% of HLSL syntax. Just like most other languages, is is made of variables, classes, functions and statements. 
+        You can define custom functions and classes, do any sorts of maths using same operators
+    </p>
+    <h2>Software Recommendations?</h2>
+    <p>
+        It doesn't really matter, so pick any text editor you prefer. Some people use <a href="https://visualstudio.microsoft.com/">Visual Studio</a>, some prefer to
+        work in <a href="https://code.visualstudio.com/">Visual Studio Code</a>. Stuff like <b>JetBrains Rider</b> probably also works.
+        If you're using VS Code, there are bunch of extensions that can improve HLSL code markdown to make navigating through code much easier.
+    </p>
+    <h2>IntelliSense</h2>
+    <p>
+        As of now, there's no IntelliSense for HLSL code or s&box API. This may appear annoying at first, but there's a good thing about
+        s&box API - it doesn't rely on internal functions and API <i>too much</i>. You won't need to remember hundreds of random macros, 
+        functions, or anything else. With enough practice, you'll feel comfortable typing code without having to constantly look up docs 
+        or some reference shaders. 
+    </p>
+</div>

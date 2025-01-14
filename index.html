@@ -1,0 +1,89 @@
+<html>
+    <head>
+        <title>shader things</title>
+        <link rel="stylesheet" href="styling.css" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/gruvbox-dark-hard.css">
+        <style>
+            .material-symbols-sharp {
+              font-variation-settings:
+              'FILL' 1,
+              'wght' 600,
+              'GRAD' -25,
+              'opsz' 24
+            }
+        </style>
+    </head>
+    <body>
+        <div class="loader">LOADING...</div>
+        <div class="navigation">
+            <p>n00b shader things</p>
+            <div class="cats">
+                <h1>HOME PAGE</h1>
+                    <a category="welcome" onclick="DisplayCategory('welcome')">
+                        <span class="material-symbols-sharp">school</span> Welcome!
+                    </a>
+
+                <h1>SHADER FUNDAMENTALS</h1>
+                    <a category="pt0start" onclick="DisplayCategory('pt0start')">
+                        <span class="material-symbols-sharp">auto_read_pause</span> Before You Start
+                    </a>
+                    <a category="pt1_introduction" onclick="DisplayCategory('pt1_introduction')">
+                        <span class="material-symbols-sharp">qr_code</span> Introduction to Shaders
+                    </a>
+                    <a category="pt2_firstshader" onclick="DisplayCategory('pt2_firstshader')">
+                        <span class="material-symbols-sharp">all_out</span> Your First Unlit Shader
+                    </a>     
+                    <a category="pt3_textures" onclick="DisplayCategory('pt3_textures')">
+                        <span class="material-symbols-sharp">wallpaper</span> Textures and Variables
+                    </a>
+                    <a category="pt4_combos" onclick="DisplayCategory('pt4_combos')">
+                        <span class="material-symbols-sharp">rebase</span> Static and Dynamic Combos
+                    </a>
+                    <a category="pt5_attributes" onclick="DisplayCategory('pt5_attributes')">
+                        <span class="material-symbols-sharp">linked_services</span> Render Attributes
+                    </a>                    
+                    <a category="pt6_lighting" onclick="DisplayCategory('pt6_lighting')">
+                        <span class="material-symbols-sharp">model_training</span> Lighting and Shading Model
+                    </a>
+                    <a category="pt7_opacity" onclick="DisplayCategory('pt7_opacity')">
+                        <span class="material-symbols-sharp">blur_on</span> Opacity and Alpha Test
+                    </a>
+                    <a category="pt8_vertexcolor" onclick="DisplayCategory('pt8_vertexcolor')">
+                        <span class="material-symbols-sharp">border_style</span> Vertex Colors
+                    </a>       
+                    <a category="pt9_blending" onclick="DisplayCategory('pt9_blending')">
+                        <span class="material-symbols-sharp">transition_fade</span> Texture Blending
+                    </a>                 
+
+                <h1>REFERENCES</h1>
+                    <a category="floats" onclick="DisplayCategory('floats')">
+                        <span class="material-symbols-sharp">settings_input_component</span> Floats and Components
+                    </a>
+                    <a category="namings" onclick="DisplayCategory('namings')">
+                        <span class="material-symbols-sharp">format_size</span> Naming Conventions
+                    </a>
+                    <a category="normals" onclick="DisplayCategory('normals')">
+                        <span class="material-symbols-sharp">view_timeline</span> Normal Map Types
+                    </a>
+                    <a category="pbr" onclick="DisplayCategory('pbr')">
+                        <span class="material-symbols-sharp">contrast</span> PBR and Texture Maps
+                    </a>
+
+                <h1>WEBSITE TESTS</h1>
+                <a category="dev" onclick="DisplayCategory('dev')">
+                    <span class="material-symbols-sharp">experiment</span> Styling Tests
+                </a>                
+            </div>
+        </div>
+        <div class="contents">
+            <span>LOADING</span>
+            <p>Loading the page, please wait! If you are actually able to read this text, there's likely a problem on my end...
+                If that's the case, please let me know.
+            </p>
+        </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script src="hlsl.min.js"></script>
+        <script src="tools.js"></script>
+    </body>
+</html>

@@ -1,0 +1,136 @@
+<div class="ArticleHeader">
+    <div class="icon">
+        <span class="material-symbols-sharp">border_style</span>
+    </div>
+    <div class="description">
+        <span>shader fundamentals</span>
+        <h1>Vertex Colors</h1>
+    </div>
+</div>
+<div class="Article">
+    <p>
+        <i>
+            <b>IN THIS ARTICLE: </b> Exploring vertex colors, how do artist add them to the mesh, reading color from 
+            vertices in VertexInput, and how can they be used.
+        </i>
+    </p>
+    <hr>
+    <p>
+        Vertex color is a pretty old feature that existed in engines for a long time. This is a very easy way to encode any sorts of data 
+        that you can read from shaders, which can be used for any purposes. Almost all engines support reading color data from vertices, 
+        and almost all 3D editing software supports painting vertex colors. 
+    </p>
+    <p>
+        Vertex colors are often used for texture blending: blending shader reads vertex color channels and applies corresponding material layer. 
+        This is how texture blending works in Hammer, and this is how texture blending is implemented for Rust props. Other popular use-case 
+        is foliage: <a href="https://wiki.facepunch.com/sbox/Foliage_Shader">this wiki page about Foliage Shader</a> shows how vertex colors 
+        are used to determine what kind of "foliage swaying" should be applied onto certain parts of the mesh.   
+    </p>
+
+    <h2>Applying Vertex Colors in Blender</h2>
+    <info>
+        This section currently covers only Blender. If anybody else is familiar with how is it done in other editing software,
+        please feel free to let me know and I'll feature it here. :P 
+    </info>
+    <p>
+        Create a new file and build any kind of geometry you'd like. You can stick with a default cube, too. In the toolbar above, 
+        where you can switch current editing mode, select <b>Vertex Paint</b> - new UI will show up with tools to select color and brush 
+        type. Paint any kind of color. 
+    </p>
+    <img src="/media/pt8_blender.png">
+    <p>
+        When you're done, export this mesh as a FBX file. In export settings, don't forget to export only <b>mesh</b> (including 
+        Blender's default light and camera will add up unnecessary size to your FBX file). In <b>Geometry</b> tab, set "Vertex Colors"
+        property to Linear, and click on <b>Prioritize Active Color</b>. This should correctly export your mesh with vertex colors. 
+    </p>
+    <img src="/media/pt8_meshexport.png">
+    <p>
+        Throw this FBX file in your s&box project. Now, we need to set up reading vertex colors in your shader. This is very easy!
+    </p>
+
+    <h2>Implementing Vertex Colors in Shader</h2>
+    <p>
+        First, you need to extend <b>VertexInput</b> by adding a new property that is linked to COLOR semantic. This is how it'll look like:
+    </p>
+    <pre><code class="language-hlsl">
+struct VertexInput
+{
+    #include "common/vertexinput.hlsl"
+    float4 vColor : COLOR0 < Semantic( Color ); >;
+};
+    </code></pre>
+    <p>
+        Then, go to <string>VS</string> section. PixelInput already comes with a property for vertex colors, but you'll need to manually 
+        store data in it before it can be used in the fragment shader:  
+    </p>
+    <pre><code class="language-hlsl">
+PixelInput MainVs( VertexInput i )
+{
+    PixelInput o = ProcessVertex( i );
+        
+    o.vVertexColor.rgb = i.vColor.rgb;
+
+    return FinalizeVertex( o );
+}
+    </code></pre>
+    <p>
+        Since <string>o</string> is a PixelInput object that vertex shader will return as a result, you can access it's <string>vVertexColor</string>
+        property to store vertex colors read from unprocessed <string>VertexInput</string> data. Now it will available from fragment shader.
+    </p>
+    <info>
+        Sometimes, depending on your mesh export settings, colors may differ from what they looked like in your 3D editor. At least in Blender,
+        you can switch between <b>linear</b> and <b>sRGB</b> color spaces for vertex colors. 
+        <br><br>
+        In our case, vertex colors are exported in linear colorspace already, so you simply copy the property into another struct. But 
+        this will be incorrect if your mesh comes with vertex colors in <b>sRGB</b>. 
+        <br><br>
+        If that's the case, before storing data into <string>vVertexColor</string>, you should convert them from sRGB to linear using helper
+        function <string>SrgbGammaToLinear( i.vColor.rgb )</string> first.    
+    </info>
+
+    <h2>Previewing Vertex Color</h2>
+    <p>
+        If you want to know if this actually works, you can temporarily override <string>ShadingModelStandard::Shade</string> and replace it 
+        with something like <string>return float4( i.vVertexColor.rgb, 1 );</string>. If you want to keep preview as a nicer feature, you can 
+        probably wrap it as another static combo, or exposed boolean in material editor.  
+    </p>
+    <img src="/media/pt8_preview.png">
+
+    <h2>Affecting Vertex Colors from C#</h2>
+    <p>
+        Technically, you can adjust vertex colors from C# by applying tint to your model renderer. Under the hood, it just writes to 
+        shader's vertex color property. This will set all vertices on your mesh to appear as a certain color, but stuff like this can also 
+        be utilized for various effects. 
+    </p>
+    <p>
+        For example, Deathcard by Small Fish uses tint to adjust player's opacity when camera gets too close to the character. It tints 
+        alpha channel which adjust character's opacity. Also, when painting textures in Hammer, it also just writes specific vertex color 
+        to the world geometry, this is how <string>blendable.shader</string> is set up.  
+    </p>
+    <p>
+        In the next article, I'll show how to add simple blending to your mesh, and utilize world-space normals as a little fun effect. 
+    </p>
+
+    <a class="dl" href="/shaders/Pt8_VertexColors.shader">
+        <div class="download">
+            <div class="icon">
+                <span class="material-symbols-sharp">file_open</span>
+            </div>
+            <div class="file">
+                <span>DOWNLOAD THE COMPLETE SHADER:</span>
+                <b>Pt8_VertexColors.shader</b>
+            </div>
+        </div>
+    </a> 
+    <a class="dl" href="/assets/cliff_painted.fbx">
+        <div class="download">
+            <div class="icon">
+                <span class="material-symbols-sharp">deployed_code</span>
+            </div>
+            <div class="file">
+                <span>DOWNLOAD SAMPLE MODEL:</span>
+                <b>cliff_painted.fbx</b>
+            </div>
+        </div>
+    </a> 
+</div>

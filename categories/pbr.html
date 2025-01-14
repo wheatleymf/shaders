@@ -1,0 +1,85 @@
+<div class="ArticleHeader">
+    <div class="icon">
+        <span class="material-symbols-sharp">contrast</span>
+    </div>
+    <div class="description">
+        <span>references</span>
+        <h1>PBR and Texture Maps</h1>
+    </div>
+</div>
+<div class="Article">
+    <warning>
+        This article is unfinished and I am not sure if I want to commit to it, something tells me that this bit 
+        is redundant for this place. It's one of those things I think would be easier to look up online rather than reading 
+        about it here. 
+    </warning>
+    <p>
+        s&box comes with a standard Source 2 shading model, which utilizes <b>PBR</b> for shading and lighting, also known as 
+        <b>Physically Based Rendering</b>. This is a modern technique used by pretty much all modern engines these days, and s&box 
+        is not an exception. (at least if you're using the standard shading model)
+    </p>
+    <p>
+        Every texture describe some specific surface properties that helps rendering fancy looking visuals. Roughness defines how shiny your 
+        surface is, metalness affects reflectivity, and ambient occlusion allows using baked "shaded" areas to add nicer depth for the texture 
+        without having to do any extra shading. There is also a normal map existing for easy and cheap detail shading, but this technique exists 
+        in many other rendering techniques too. 
+    </p>
+    <p>
+        Even though you can create your own shading models, nearly all s&box shaders these days rely on PBR. I won't get too nerdy about how does it work,
+        but it may be useful to understand how do they work if there's more "programmer" than "artist" in your mind. Generally, every PBR
+        material consists of specific set of textures.
+    </p>
+    
+    <h3>Albedo Map</h3>
+    <p>
+        Also known as a color map. It is a RGB texture, which means in HLSL code it is usually represented as <string>float3</string>. 
+        This is a base color of your material, it has no effect on shading. Albedo maps are always read in sRGB mode in shaders, this is important!
+        If you try reading the texture in linear color space, your colors will probably appear inaccurate. 
+    </p>
+
+    <h3>Normal Map</h3>
+    <p>
+        Normal map is a good old technique that allows rendering little surface details at a low rendering cost. Normal maps are also using 
+        RGB channels, so it is also represented by <string>float3</string> vector. Most game engines, including s&box, expect that your normal 
+        map is in <b>OpenGL</b> (Y up) format, with normals oriented in tangent space. 
+    </p>
+
+    <h3>Roughness Map</h3>
+    <p>
+        Roughness map is a grayscale texture that defines how shiny your surface is, so it's a <string>float</string> component in HLSL.
+        Higher value means that your surface is very rough and barely produces any shine, while lower values indicate that material surface is smooth. There is a very good website called 
+        <a href="https://physicallybased.info/">"Physically Based"</a> which has physically accurate surface properties for lots of materials.
+    </p>
+
+    <h3>Metalness Map</h3>
+    <p>
+        Metalness map is also grayscale texture that described the reflectivity of given surface. 0 means that this object is non-metallic, 
+        while higher values make it appear metallic with more reflectivity. Setting up this surface is important to make metallic surfaces
+        in PBR appear correctly. 
+    </p>
+
+    <h3>Ambient Occlusion</h3>
+    <p>
+        Ambient Occlusion is a grayscale texture that allows adding cheap shading details for the surface. Usually these shadows are baked 
+        by the texturing software of your choice. It adds very subtle shading details that are visible only in those spots of the surface 
+        that are currently covered by a shadow, giving it a nice realistic effect.     
+    </p>
+
+    <p>
+        Roughness, metalness and ambient occlusion maps are often packed and compiled into a single RGB texture inside the shader, since it 
+        minimizes amount of generated texture files for each material and allows sampling all 3 of them once. 
+    </p>
+
+    <h2>Creating textures</h2>
+    <p>
+        Textures these days are created in software like <b>Substance Painter</b> or <b>Marmoset Toolbag</b> (if you're texturing props), 
+        or <b>Substance Designer</b> if you're making generic textures for world environment or other purposes. All of them prioritize PBR 
+        as the main way of shading, too. 
+    </p>
+    <p>
+        All of them have many things set up to make creating PBR textures as quick as possible, so you don't have to worry about setting up 
+        each map individually. The only exception is Substance Designer, where you're expected to have full control over every detail. They also 
+        all come with nice preview renderers so you can know how does your material looks like. These visuals will be pretty close to what
+        you'll see in s&box. 
+    </p>
+</div>

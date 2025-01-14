@@ -1,0 +1,266 @@
+<div class="ArticleHeader">
+    <div class="icon">
+        <span class="material-symbols-sharp">rebase</span>
+    </div>
+    <div class="description">
+        <span>shader fundamentals</span>
+        <h1>Static and Dynamic Combos</h1>
+    </div>
+</div>
+<div class="Article">
+    <p>
+        <i>
+            <b>IN THIS ARTICLE: </b> Learning about static and dynamic combos, their upsides and downsides, and what you should be aware of.
+            Implementing combos and updating the code for them. 
+        </i>
+    </p>
+    <hr>
+    <p>
+        <b>What is a Combo?</b> In s&box shaders, it means a shader variant. If you're adding a new combo into your code, that does some extra 
+        operations, this tells the compiler to create essentially a new variant of your shader. So inside your compiled shader with combos, 
+        there's actually a collection of shader variants that switched between each other depending on features you're toggling 
+        from the Material Editor.    
+    </p>
+    <img src="/media/pt4_shadercombos.png">
+    <p>
+        Please note that this isn't how compiled shader code looks like. This image simplifies a lot of things to give you the general 
+        idea of how combos are working internally. 
+    </p>
+    <p>
+        <b>But why do I need combos? Can't I just use if-statements?</b> It all depends on what are you currently doing. There's nothing 
+        wrong with if-statement if you're making a short value check in primitive, two-line maths, it will be okay. But if you're 
+        making a huge if-statement block that branches entire code off to some big, expensive math, you will probably mess with the performance 
+        even on very modern hardware.
+    </p>
+    <p>
+        So instead of branching off your code so hard and possibly adding issues to your shader performance, why not just use combos instead? 
+        You still have a single shader file, and compiler generates all shader variants itself, which are static, and do not impact the performance.
+    </p>
+    <p>
+        <b>What's the difference between "static" and "dynamic"</b>? Functionally, they are the same, but both of them have unique 
+        ways of interaction. <b>Static</b> combos can be toggled only from Material Editor, you can't interact with them from C#. <b>Dynamic</b>
+        combos, on other hand, can be toggled from code but cannot be changed in Material Editor. 
+    </p>
+    <p>
+        <b>Static combos</b> are useful for any extra visual features that you want to let artists toggle for their artwork, but don't want to keep 
+        them always enabled in shader by default for performance reasons. <b>Dynamic combos</b> are good for anything that you want to 
+        change at runtime via C#: for example, graphics settings, special features, or any other functonality that requires branching off your code.   
+    </p>
+
+    <h2>
+        Creating a new static combo
+    </h2>
+    <p>
+        Lets add a static combo to our shader. In last article we've added texture scrolling and tinting. Lets expand our texture tint 
+        functionality by adding a new feature, which will allow tinting the texturing by a mask.
+    </p>
+    <p>
+        Before adding a static combo, we must add a new feature inside the <string>FEATURES</string> block. This will initialize a new 
+        feature property that will be visible in Material Editor. Go in that block, and above the <string>#include</string> line, add this: 
+    </p>
+    <pre><code class="language-hlsl">
+Feature( F_TINT_BY_MASK, 0..1, "Custom Features" );
+    </code></pre>
+    <p>
+        This is a special macro that creates a new material feature. Lets see what every argument in it means:
+        <ul>
+            <li>
+                <b>F_TINT_BY_MASK</b> - this is a variable name. It'll be used both for a static combo, and for displaying the feature's 
+                name in the material editor. It should always start with a <string>F_</string> prefix. (it'll be hidden in editor)
+            </li>
+            <li>
+                <b>0..1</b> is the range of available choices. 0 will mean "disabled", 1 is "enabled". You can define more than two choices, 
+                but for now we just need "on/off".
+            </li>
+            <li>
+                <b>"Custom Features"</b> is the group name. Your feature will appear under this group in the material editor. 
+            </li>
+        </ul>
+    </p>
+    <p>
+        Position of stuff that appears in features list is sorted by depending on what was added in the code first. So by adding this feature 
+        above the <string>#include</string>, it'll appear above all features added by core shader stuff. There is more functionality to features, 
+        including ways to excluding features, adding rules and other fancy things. This page on <a href="https://wiki.facepunch.com/sbox/AnatomyOfVFX#features">s&box wiki explains</a> all available feature things quite well.
+    </p>
+    <p>
+        If you've done it right, this feature will appear in the menu, but it won't do anything yet. We must now create a new static combo 
+        and hook this feature's variable to it. Go to <string>PS</string> block, and under <string>#include "common/pixel.hlsl"</string>, 
+        add the following line:
+    </p>
+    <pre><code class="language-hlsl">
+StaticCombo( S_TINT_BY_MASK, F_TINT_BY_MASK, Sys( ALL ) );
+    </code></pre>
+    <p>
+        Now we have added a combo. Here's a short overview of the arguments you're typing there:
+        <ul>
+            <li>
+                <b>S_TINT_BY_MASK</b> is the variable name of this static combo. It'll have the same value as <string>F_TINT_BY_MASK</string>.
+                We can't use <string>F_TINT_BY_MASK</string> directly. We can use this variable for our special combo if-statements.
+            </li>
+            <li>
+                <b>F_TINT_BY_MASK</b> is the feature's variable that is now attached to this combo. Your new static combo will grab the currently 
+                selected value from this feature. You may want to give static combo the same name as your feature. 
+            </li>
+            <li>
+                <b>Sys( ALL )</b> - this means on which system platform this combo is supported. For now you can use either <string>ALL</string>
+                or <string>PC</string>, but it doesn't really do anything while s&box is available only on PC. I don't know if Facepunch still has 
+                any plans on this property, but you must have it filled out anyway. 😅  
+            </li>
+        </ul>
+    </p>
+    <p>
+        When your combo is successfully added and connected to your new feature, we can add new optional code. First, lets add a new texture 
+        input for the tint mask. And you'll also need change the way Texture2D object is created: instead of creating new Texture2D just for 
+        the tint mask, we can put it into existing object instead. This is a nice and simple optimization, since material will generate just 
+        one compiled texture instead of two, and we'll need to do sample just once instead of twice. Sampling can get expensive for rendering
+        if you're doing it too often. 
+    </p>
+    <p>
+        Under <string>TextureTint</string> declaration, add this:
+    </p>
+    <pre><code class="highlight-hlsl">
+#if ( S_TINT_BY_MASK )
+    CreateInputTexture2D( TintMask, Linear, 8, "", "_tint", "My Material,10/20", Default( 1 ) );
+#endif
+    </code></pre>
+    <p>
+        Unlike traditional if-statements, these ones have a slightly different syntax. Instead of brackets, they always start with 
+        <string>#if ( CONDITION )</string> and end with <string>#endif</string>. Inside the macro, you're using <string>Linear</string>
+        instead of sRGB like with a color map, because tint map is usually <b>grayscale</b>, which is represented by a single float vector,
+        and we don't need to use sRGB color space for it. Also hence why it's "Default()" instead of "Default3()" now. 
+    </p>
+    <p>
+        That's not all. We need to re-arrange the placement of where Texture2D is created. First, cut (Ctrl+X) the line where you have 
+        your <string>Texture2D</string> definition, and put it inside the combo statement, right after <string>CreateInputTexture2D()</string>.
+        Then, inside the annotations, after the <string>Channel()</string>, add a new channel, set to <string>A</string>, box <string>TintMask</string>
+        and color space <string>Linear</string>. Should end up looking like this: 
+    </p>
+    <pre><code class="highlight-hlsl">
+#if ( S_TINT_BY_MASK )
+    CreateInputTexture2D( TintMask, Linear, 8, "", "_tint", "My Material,10/20", Default( 1 ) );
+    Texture2D g_tColor < Channel( RGB, Box( AlbedoMap ), Srgb ); Channel( A, Box( TintMask ), Linear ); OutputFormat( BC7 ); SrgbRead( true ); >;
+#endif
+    </code></pre>
+    <p>
+        Textures can use up to four channels, RGBA. Until then, A (alpha) channel wasn't used - now it is, by storing the tint mask into 
+        texture's alpha channel. But hold on, now there's no Texture2D outside of this shader variant! How is it going to work? That's right, 
+        it won't. We need to add <string>#else</string> with a separate Texture2D declaration without the alpha channel, which will be used 
+        in a shader variant where static combo <string>S_TINT_BY_MASK</string> is disabled. 
+    </p>
+    <pre><code class="highlight-hlsl">
+#if ( S_TINT_BY_MASK )
+    // This will be in a shader variant where S_TINT_BY_MASK is enabled
+    CreateInputTexture2D( TintMask, Linear, 8, "", "_tint", "My Material,10/20", Default( 1 ) );
+    Texture2D g_tColor < Channel( RGB, Box( AlbedoMap ), Srgb ); Channel( A, Box( TintMask ), Linear ); OutputFormat( BC7 ); SrgbRead( true ); >;
+#else
+    // This will be in a shader variant where S_TINT_BY_MASK is disabled
+    Texture2D g_tColor < Channel( RGB, Box( AlbedoMap ), Srgb ); OutputFormat( BC7 ); SrgbRead( true ); >;
+#endif
+    </code></pre>
+    <p>
+        Good, now save the shader and see if it is working. Click on a freshly added custom feature, and see if anything happens.
+        You should see a new texture input appear after enabling the <string>Tint By Mask</string> feature. 
+    </p>
+    <img src="/media/pt4_feature.png">
+    <p>
+        If you try adding a mask, it will do nothing. There's bunch of changes you have to make inside <string>MainPs</string>. 
+        First of all, currently it is sampling only RGB, since variable is a <string>float3</string>, and alpha channel isn't sampled.
+        Second, current tinting method isn't accounting for a mask at all. Time to change this.
+    </p>
+    <p>
+        Replace MyTexture's <string>float3</string> with <string>float4</string>. There's no point in wrapping this into a static combo, even if 
+        given Texture2D doesn't have <string>A</string> component, it'll just return 0 without breaking anything. 
+        Since we're sampling all 4 channels of this texture once, it means that alpha (tint mask) will inherit the UV scaling too.
+        If you want it to have a different scale, you'll need to sample it separately. 
+        Also remove <string>* TextureTint</string>, this part will be handled inside the combo branching.
+    </p>
+    <pre><code class="highlight-hlsl">
+float4 MyTexture = g_tColor.Sample( g_sAniso, uv );
+    </code></pre>
+    <p>
+        You also must update the returning value. Since this is a <string>float4</string> now, doing <string>float4( MyTexture, 1 )</string>
+        won't work because MyTexture itself has four components now, and <string>1</string> will be considered as fifth one, which means compiler will fail. 
+        In this case, you shouldn't return just the "MyTexture" variable itself because it's alpha component represents tint mask, not the opacity.
+        Instead, do this:
+    </p>
+    <pre><code class="highlight-hlsl">
+// We can specify which components of given vector need to be used.
+// They can be selected in any order, and swizzled.
+return float4( MyTexture.rgb, 1 );
+    </code></pre>
+    <p>
+        Now it's time to re-implement the way this texture is being tinted. Under the line where this texture is sampled, add this:
+    </p>
+    <pre><code class="highlight-hlsl">
+#if ( S_TINT_BY_MASK )
+    MyTexture.rgb = lerp( MyTexture.rgb, MyTexture.rgb * TextureTint, MyTexture.a );
+#else 
+    MyTexture.rgb *= TextureTint;
+#endif
+    </code></pre>
+    <p>
+        What's happening here: if given shader variant has <string>S_TINT_BY_MASK</string> enabled, then it will tint the texture 
+        according to the tint mask (<string>MyTexture.a</string>). Texture masks are very useful for things like emission mask, 
+        tint mask, opacity, and many other things - they're not really limited to any certain purpose, you're the one who decides 
+        how to use a mask, and where. 
+    </p>
+    <img src="/media/pt4_masks.png">
+    <p>
+        You can read about <a href="https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-lerp">lerp function</a>
+        here. It is a linear interpolation between two values, where third argument is the control value, expected in 0-1 range. 
+    </p>
+    <p>
+        Now as you can see, when you enable "Tint By Mask", you can throw any grayscale map in "Tint Mask" slot and it'll change the way 
+        color texture is being tinted! Instead of changing colors everywhere, it applies tint only on corresponding parts of the mask.
+    </p>
+    <img src="/media/pt4_materialcombo.png">
+
+    <h3>Downsides of Combos</h3>
+    <p>
+        There's one important thing to note about static combos. While they're helpful with wrapping extra functionality and different
+        rendering methods behind shader variants, it also increases the compilation time. While it won't be a problem if you have just 
+        a few combos, adding too many features can compilation time hilariously long, due to a big amount of shader variants s&box 
+        has to compile for you. So be aware what really needs to be wrapped behind a combo, and use <a href="https://wiki.facepunch.com/sbox/AnatomyOfVFX#example">feature rules</a>
+        to exclude some features between each other, this will help with reducing amount of combos. 
+    </p>
+    <p>
+        You must find a balance between features that need to be implemented through a shader combo, features that you can do through 
+        default if-statements, and things that probably worth to be done in a separate shader altogether. Maybe, some features can be 
+        included by default without having to make them optional. It's up to you. 
+    </p>
+
+    <h2>Dynamic Combos</h2>
+    <p>
+        Dynamic combos are used for enabling extra shader functionality at runtime, instead of manually toggling them through material 
+        editor. Dynamic combos aren't connected to shader features, and cannot be adjusted through material editor. This is how you 
+        declare them in PS block:
+    </p>
+    <pre><code class="language-hlsl">
+DynamicCombo( D_OVERRIDE_COLOR, 0..1, Sys( ALL ) );
+    </code></pre>
+    <p>
+        They must start with a <string>D_</string> prefix. Second argument, just like with features, indicates how many options 
+        this combo has. More options also means more shader variants. You don't have to add anything in <string>FEATURES</string> section, 
+        this is the only thing you need to implement a new dynamic combo.
+    </p>
+    <p>
+        Inside your code, dynamic combos are applied exactly the same way as with static combos. 
+    </p>
+    <p>
+        To toggle dynamic combos, you must set the value for given combo through <string>RenderAttributes</string> in C# code. 
+        It can be done either globally through scene, or by accessing attributes of specific GameObject's SceneModel. It feels like
+        RenderAttributes deserve some attention, so I'll explain how to control dynamic combos in the next article.  
+    </p>
+
+    <a class="dl" href="/shaders/Pt4_ShaderCombos.shader">
+    <div class="download">
+        <div class="icon">
+            <span class="material-symbols-sharp">file_open</span>
+        </div>
+        <div class="file">
+            <span>DOWNLOAD THE COMPLETE SHADER:</span>
+            <b>Pt4_ShaderCombos.shader</b>
+        </div>
+    </div>
+    </a>  
+</div>

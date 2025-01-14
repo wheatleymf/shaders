@@ -1,0 +1,188 @@
+<div class="ArticleHeader">
+    <div class="icon">
+        <span class="material-symbols-sharp">settings_input_component</span>
+    </div>
+    <div class="description">
+        <span>references</span>
+        <h1>Floats and Components</h1>
+    </div>
+</div>
+<div class="Article">
+    <p>
+        You probably saw things like <string>float3</string>, <string>float4</string> or <string>int2</string> already. What does it stand for, 
+        what does this number in the type's name does?    
+    </p>
+    <p>
+        Basically, there are common <b>scalar</b> value types like <string>float</string>, <string>int</string>, <string>uint</string> and etc. They
+        work as you expect, they hold a number in a format according to given type. But all these scalar types also have vector types, that represent 
+        mathematical vectors with 2, 3 or 4 components. You can't have more than 4 components in one vector. 
+    </p>
+    <p>
+        Any scalar value have vector counterparts: if you need a single variable that holds three different <string>float</string>
+        values, you can just initialize it with a <string>float3</string> type. It will be called a 3D vector. Variable with a type of <string>float2</string>
+        is a 2D vector. 
+    </p>
+    <p>
+        This is how you can initialize them:
+        <ul>
+            <li>
+                <string>float</string>: you just create a new variable with any value, something like this:
+                <b>float myvariable = 3.4f;</b>
+            </li>
+            <li>
+                <string>float2</string>: these are usually used for things like texture coordinates. 
+                <b>float2 2Dcoords = float2( 1, 0 );</b> will create a new 2D floating-point vector that holds values <b>1, 0</b>.
+            </li>
+            <li>
+                <string>float3</string>: float3 is used for many things: representing colors, position of things in 3D coordinates (for example: world-space
+                position of pixels or vertices), representing normals, direction, and many other things.
+                <b>float3 normals = float3( 0, 0, 1 );</b> will create a new float3 variable that holds values 0, 0, 1.
+            </li>
+            <li>
+                <string>float4</string>: float4 is a 4D vector that holds four floating-point values. For example, when you're returning a pixel in s&box shaders, 
+                it is expected that it is passed as a float4 vector. 
+                <b>float4 pixel = float4( 1, 0, 0, 1 );</b> will create a new float4 variable. Assuming that it will be used to render 
+                final color returned from this shader, it will create a pure red color with alpha (opacity) channel set at 1.
+            </li>
+        </ul>
+    </p>
+    <p>
+        Identical things can be done for other scalar values, like integers, signed integers, doubles, or halfs. 
+    </p>
+
+    <h2>Accessing Components</h2>
+    <p>
+        HLSL allows accessing components of vectors really easily, and quickly swizzle them too.
+    </p>
+    <p>
+        There are two ways you can access these components: either using <string>.RGBA</string>, or <string>.XYZW</string> layout. 
+        There's no difference between them, you can use either of them, regardless of how your variable is being used in code. 
+        Each letter represents each component in corresponding order. This is how you can access <b>float4</b>'s second component: 
+    </p>
+    <pre><code class="highlight-hlsl">
+// this will return "0.2".
+// alternatively, you can use ".y" suffix
+float4 example = float4( 0, 0.2, -3, 2 );
+float onecomponent = example.g;
+    </code></pre>
+    <p>
+       You can access multiple components as well. Another neat thing is that you can access components using these suffix in any order.
+    </p>
+    <pre><code class="highlight-hlsl">
+// This will return 2D vector with values of ( -1, 1 ).
+// This is technically called "swizzling". 
+float3 example = float3( -1, 0, 1 );
+float2 twocomponents = example.xz;
+    </code></pre>
+    <p>
+        Sometimes, there are cases when you need to fit scalar value into a multi-component vector. For example, you have a variable 
+        with a type of <string>float</string>, and you need to put it into first three components of a <string>float4</string> vector, while 4th 
+        component is defined separately. How can you do that? Very easily!
+    </p>
+    <pre><code class="highlight-hlsl">
+// Weird task: fit "float" inside a float4 vector, where 4th is initialized separately:
+float SomeValue = 0.455f;
+float4 pixel = float4( SomeValue.xxx, 1 );
+    </code></pre>   
+    <p>
+        This allows quickly duplicating and swizzling components in a very compact way. Instead of doing something tedious like 
+        <string>float4( value.x, value.x, value.x, 1 )</string>, you can just what I did in the sample code. It indicates copying 
+        X component for all three channels, then HLSL figures out the rest. 
+    </p>
+    <p>
+        You can do something like this too: 
+    </p>
+    <pre><code class="highlight-hlsl">
+// Create "swizzled" 3D vector that returns ( 2, 2, 0 ).
+// Integers can have vectors too, and support these tricks too!
+int4 vector = float4( 2, 5, 0, 7 );
+int3 swizzled = vector.xxz; 
+    </code></pre>  
+    <p>
+        As you can see, component suffixes are very flexible. And again, don't forget that you can use <string>RGBA</string> suffixes. 
+        They're identical to each other. <b>XYZW</b> represents coordinates, while <b>RGBA</b> stands for "red, green, blue, alpha"; which may be more convenient 
+        if you're working with vectors/scalar values that represent color. 
+    </p>
+
+    <h2>Float Vectors as Colors</h2>
+    <p>
+        While you probably can wrap your head around the concept of vectors representing mathematical bullshit like coordinates,
+        normals and other boring stuff, you're probably curious about HLSL data representing colors.
+    </p>
+    <p>
+        <b>Floating-point</b> values (<string>float</string>) is the main value type that is used for representing colors: since all color 
+        is represented with values within the <b>(0 - 1)</b> range, values must have a good precision, and integer clearly wouldn't work for this.    
+    </p>
+    <p>
+        Color maps (things like albedo or normal maps) consist of three channels: <b>red</b>, <b>green</b>, and <b>green</b>. This means that for color maps, you will need
+        at least <string>float3</string> vector. For grayscale maps like masks, roughness/metalness/AO maps, you'll need just one <string>float</string>. 
+    </p>
+    <img src="/media/texturestoring.png">
+    <p>
+        If you open a colored image in Photoshop and open channel layers, you'll see that image consists of three grayscale channels. Since 
+        grayscale images require just one <string>float</string>, when they're stacked together, they turn into a 3D vector! 
+    </p>
+    <p>
+        This is how normal maps work too: when you deconstruct a normal map into separate channels, (see: <b>Normal Map Types</b>) it's just three grayscale maps, where 
+        first channel is red (X axis), second channel is green (Y axis), and third channel is blue (Z axis). While normal maps are not meant 
+        to be used as a visible color map, this format allows easily packing three channels of data in a single file, which is convenient 
+        and good for saving up some memory space.
+    </p>
+    
+    <h2>Texture Packing</h2>
+    <p>
+        There's one useful technique that I recommend using when you have a shader with bunch of texture maps. For example, if you have a color map 
+        (that's three components), and one grayscale tint mask, instead of creating a separate <string>float3</string> for the color map and separate 
+        <string>float</string> for the tint mask, you can pack them in a single <string>float4</string> vector. This is highly recommended 
+        for packing texture inputs: compiled textures are saved onto disk, and reducing amount of unique texture map files is nice.  
+    </p>
+    <p>
+        This also allows sampling both color map and tint mask once, instead of twice. Doing too many samples in your code isn't good for the 
+        performance, so always to try pack things together! Although keep in mind that if you want to sample some textures with varying UV values, 
+        you won't be able to pack them.
+    </p>
+    <p>
+        This trick is very useful for sampling PBR grayscale maps like <b>roughness</b>, <b>metalness</b> and <b>ambient occlusion</b> just once. 
+        Instead of creating three different <string>float</string> variables and sampling them thrice, you can just do it once, by packing them 
+        together into a single <string>float3</string> vector. 
+    </p>
+    <p>
+        Here's a code snippet showing how is it done:
+    </p>
+    <pre><code class="highlight-hlsl">
+PS
+{   
+    // ...
+
+    // Create 3 texture input slots that will be visible in Material Editor. 
+    CreateInputTexture2D( Roughness, Linear, 8, "", "_rough", "Material,10/40", Default( 1 ) );
+    CreateInputTexture2D( Metalness, Linear, 8, "", "_metal",  "Material,10/50", Default( 1 ) );
+    CreateInputTexture2D( AmbientOcclusion, Linear, 8, "", "_rough", "Material,10/60", Default( 1 ) );
+
+    // Create a single Texture2D with all three maps packed together.
+    // s&box will generate single compiled texture map out of it, with each map 
+    // put into corresponding channel as it's set in here. 
+    Texture2D g_tRMA < Channel( R, Box( Roughness ), Linear ); Channel( G, Box( Metalness ), Linear ); Channel( B, Box( AmbientOcclusion ), Linear ); SrgbRead( false ); OutputFormat( BC7 ); >;
+    
+    // ...
+    float4 MainPs( PixelInput i ) : SV_Target0 
+    {
+        // ...
+        Material mat = Material::Init();
+
+        float3 rma = g_tRMA.Sample( g_sAniso, i.vTextureCoords.xy );
+        mat.Roughness = rma.r;
+        mat.Metalness = rma.g;
+        mat.AmbientOcclusion = rma.b;
+        
+        // ...
+        return ShadingModelStandard::Shade( i, mat );
+    }
+}
+    </code></pre>
+    <p>
+        And this is how compiled texture (generated by s&box) looks like after you save the material, where roughness, metalness and 
+        ambient occlusion maps are compiled into a single Texture2D object:
+    </p>
+    <img src="/media/texturepacking.png">
+</div>

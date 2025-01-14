@@ -1,0 +1,334 @@
+<div class="ArticleHeader">
+    <div class="icon">
+        <span class="material-symbols-sharp">transition_fade</span>
+    </div>
+    <div class="description">
+        <span>shader fundamentals</span>
+        <h1>Texture Blending</h1>
+    </div>
+</div>
+<div class="Article">
+    <p>
+        <i>
+            <b>IN THIS ARTICLE: </b> Setting up texture input and properties for a 2nd texture layer, applying blend using vertex colors, 
+            then improving this technique by adding height masks for higher quality blend, and then adding alternative blending method by using world-space normals. 
+        </i>
+    </p>
+    <hr>
+    <p>
+        Texture blending is extremely useful for adding extra detail on your material. Nearly all modern games use multiple texture layers and blending 
+        to increase the detail of environment. Although I've mentioned it already in previous article, but Rust utilizes it a lot: lots of buildings 
+        you see on monuments have these details using vertex colors and texture layers. 
+    </p>
+    <p>
+        Today, we'll implement two types of texture blending: one uses vertex colors to determine where certain layers will be applied 
+        on your mesh, and second uses world-space normals for realtime "layering" effect. 
+    </p>
+    
+    <h2>Blending using Vertex Colors</h2>
+
+    <h3>Setting up mesh in Blender</h3>
+    <p>
+        First, make sure you have a test mesh ready. See the previous article if you don't know how to paint vertex colors and export painted mesh 
+        in Blender. While in vertex paint more, select pitch black color and do <string>Ctrl+X</string> to apply this color for all vertices.
+        Then, using color picker, pick 100% red color and paint the area you want to cover with a 2nd texture. 
+    </p>
+    <img src="/media/pt9_redchannel.png">
+    <p>
+        Now export it with vertex colors includes in linear color space. Import it in s&box, set up the mesh using ModelDoc, assign it 
+        to use the material with your custom shader, that's it. Now, let's move to the shader: we'll need to adds lots of new things, 
+        and perfectly you may want to re-organize some existing variables for easier access.
+    </p>
+
+    <h3>Set up new static combo</h3>
+    <p>
+        There's no necessity to keep all blending functionality enabled by default, so let's branch it by wrapping it behind another 
+        static combo. In <string>FEATURES</string>, define a new feature: 
+    </p>
+    <pre><code class="language-hlsl">
+Feature( F_BLEND_LAYER, 0..1, "Extra Features" );
+    </code></pre>
+    <p>
+        Now go to to <string>PS</string> block and implement new static combo with a link to this new feature.
+    </p>
+    <pre><code class="language-hlsl">
+StaticCombo( S_BLEND_LAYER, F_BLEND_LAYER, Sys( ALL ) );
+    </code></pre>
+    <p>
+        Don't forget that this shader will utilize vertex colors for blending. So if you haven't set up VertexInput to read and process 
+        colors inside of a vertex shader, check out the previous article. It's an easy thing to do.
+    </p>
+    <p>
+        Now, we'll need to do add lots of new texture inputs. To give more control for artist, we'll also implement unique variables 
+        to let you control texture scale & tint, normal map strength, and emission per-layer. Under declaration of texture inputs and 
+        Texture2Ds for main textures, add a new <string>#if</string> for <string>S_BLEND_LAYER</string> combo.
+    </p>
+    <pre><code class="language-hlsl">
+    // 
+    // Second layer rendered on top, create input slots
+    //
+#if ( S_BLEND_LAYER )
+    CreateInputTexture2D( LayerColor, 		    Srgb, 	8, "", "_color", "Material B,20/Albedo Map,20/10", Default3( 1.0, 1.0, 1.0 ) );						
+    CreateInputTexture2D( LayerColorTintMask, 	Linear, 8, "", "_tint", "Material B,20/Albedo Map,20/20", Default1( 1 ) );						
+    CreateInputTexture2D( LayerNormal, 			Linear, 8, "NormalizeNormals", "_normal", "Material B,20/Normal Map,20/30", Default3( 0.5, 0.5, 1.0 ) );		
+    CreateInputTexture2D( LayerRoughness, 		Linear, 8, "", "_rough", "Material B,20/Roughness,20/40", Default( 1 ) );											
+    CreateInputTexture2D( LayerMetalness, 		Linear, 8, "", "_metal",  "Material B,20/Metalness,20/50", Default( 0 ) );									
+    CreateInputTexture2D( LayerAmbientOcclusion,Linear, 8, "", "_ao",  "Material B,20/Ambient Occlusion,20/60", Default( 1 ) );
+
+    // Input slot for 2nd layer emission if it's enabled
+    #if ( S_EMISSION )
+        CreateInputTexture2D( LayerEmission, Srgb, 8, "", "_em", "Material B,20/Emission,20/70", Default3( 0, 0, 0 ) );
+        Texture2D layerEmissionMap < Channel( RGB, Box( LayerEmission ), Srgb ); OutputFormat( BC7 ); SrgbRead( true ); >;
+
+        float g_flLayerEmissionStrength < UiType( Slider ); Range( 0, 8 ); Default( 1 ); UiGroup( "Material B,20/Emission,20/71"); >;            
+    #endif  
+
+    Texture2D layerColorMap  < Channel( RGB, Box( LayerColor ), Srgb ); Channel( A, Box( LayerColorTintMask ), Linear ); OutputFormat( BC7 ); SrgbRead( true ); >;
+	Texture2D layerNormalMap < Channel( RGB, Box( LayerNormal ), Linear ); OutputFormat( DXT5 ); SrgbRead( false ); >; 
+	Texture2D g_tRmaLayer    < Channel( R, Box( LayerRoughness ), Linear ); Channel( G, Box( LayerMetalness ), Linear); Channel( B, Box( LayerAmbientOcclusion ), Linear ); OutputFormat( BC7 ); SrgbRead ( false ); >; 
+
+    // Add control sliders same as in Material A, but for Material B.
+    float   g_flLayerNormalIntensity < UiType( Slider ); Range( 0, 3 ); Default( 1 ); UiGroup( "Material B,20/Normal Map,20/31" ); >;
+    float   LayerTextureScale < UiType( Slider ); Range( 0, 5 ); Default( 1 ); UiGroup( "Material B,20/Layer Settings,20/90" ); >;
+    float3  LayerTextureTint < UiType( Color ); Default3( 1, 1, 1 ); UiGroup( "Material B,20/Layer Settings,20/91" ); >;
+#endif
+    </code></pre>
+    <p>
+        This will create the same set of PBR texture inputs as we did for the main material. If emission is enabled on this material, it will 
+        generate emission map for this texture too. We're also implementing texture scale, tint and normal strength for this layer specifically, 
+        so you wouldn't have just one variable tied to both layers. Although if that's something you prefer, you can delete these variables 
+        and use original variables instead.
+    </p>
+    <p>
+        Also, as you can see, this layer does not support opacity - but it can be added if you'd like. I hope you already know enough to do 
+        this by yourself, it wouldn't be hard! 
+    </p>
+
+    <h3>Sampling and Configuring the Material</h3>
+    <p>
+        Next, you need to create another <string>#if</string> in MainPs, right after the <string>#IF (S_EMISISON)</string> section. This is
+        because you will create new materials and sample new textures. To keep code (somewhat) clean, it'll be better to do when all other code 
+        has finished setting up the first material. 
+    </p>
+    <pre><code class="language-hlsl">
+// 
+// Sample all 2nd layer textures, and create a new Material object.
+// Apply same effects as for the first material textures.
+// 
+#if ( S_BLEND_LAYER )
+    // Set up separate UV property for layered texture 
+    float2 layer_uv = i.vTextureCoords * LayerTextureScale;
+
+    float4 albedo_l = layerColorMap.Sample( g_sAniso, layer_uv ).rgba;
+    float3 normal_l = DecodeNormal( layerNormalMap.Sample( g_sAniso, layer_uv ).rgb );
+    normal_l.rg *= g_flLayerNormalIntensity;
+
+    float3 rma_l = g_tRmaLayer.Sample( g_sAniso, layer_uv ).rgb;
+
+    // Create new Material object, this is where new textures will be inserted
+    Material layer = Material::Init();
+
+    layer.Albedo = lerp( albedo_l.rgb, albedo_l.rgb * LayerTextureTint, albedo_l.a );
+    layer.Normal = TransformNormal( normal_l, i.vNormalWs, i.vTangentUWs, i.vTangentVWs );
+    layer.Roughness = rma_l.r;
+    layer.Metalness = rma_l.g;
+    layer.AmbientOcclusion = rma_l.b;
+    layer.TintMask = albedo_l.a;
+
+    // Handle emission mode
+    #if ( S_EMISSION )
+        layer.Emission = layerEmissionMap.Sample( g_sAniso, layer_uv ).rgb;
+    #endif
+
+    // Tip: you can add opacity here too! 
+
+    // Final step: when both materials are set up, we can use Material class' special function "lerp"
+    // to quickly lerp two textures together.
+    mat = Material::lerp( mat, layer, i.vVertexColor.r );
+#endif
+    </code></pre>
+    <p>
+        This is essentially repeating the same code as for the main material, but with new textures. We're applying same manipulations and 
+        effects for albedo tint, texture scale, and normal map strength. It also includes emission if it's enabled. This code can be probably 
+        greatly simplified. 
+    </p>
+    <p>
+        Last bit lerps two materials together. This is a special <string>lerp</string> function that comes with the Material class, it is
+        specifically written to combine two materials together, because doing it manually for every texture would be abysmally dogshit suicide 
+        mission. As a linear control value, we'll be using red channel of vertex colors. This means that spots without red will use main material, 
+        while spots where red channel goes up to <b>1</b> will render new layered material.
+    </p>
+    <p>
+        Now, compile everything and set up the material. You'll need to find another PBR material for this. [note to myself: I probably can 
+        just share My Summer Cottage assets]
+    </p>
+    <img src="/media/pt9_blended.png">
+    <p>
+        Well done! What we did here can be called as <b>linear blending</b>, because it simply lerps between two textures, with control value 
+        being just red channel going from 0 to 1. Something you probably noticed is that it doesn't look that good... surely, transition 
+        between these two materials can be improved, right? Yeah!
+    </p>
+
+    <h3>Adding Height Blend</h3>
+    <p>
+        Blending between two textures can be significantly improved by using <b>height blend masks</b>, and some extra math. First, add a new texture 
+        input for the main material.
+    </p>
+    <pre><code class="language-hlsl">
+CreateInputTexture2D( HeightMask, Linear, 8, "", "_height", "Material A,10/Height Blend Mask,10/35", Default( 1 ) );
+    </code></pre>
+    <p>
+        Since currently Texture2D for normal map uses only three channel, this heightmap can be put into fourth (alpha) channel.
+    </p>
+    <pre><code class="language-hlsl">
+// Notice that we've added channel A, which points to the HeightMask input!
+Texture2D NormalMap < Channel( RGB, Box( Normal ), Linear ); Channel( A, Box( HeightMask ), Linear ); OutputFormat( DXT5 ); SrgbRead( false ); >; 
+    </code></pre>
+    <info>
+        <p>Why are we creating this input slot outside of the S_BLEND_LAYER code?</p>
+        <p>
+            When this blend feature is disabled, this input will not show up in the material editor anyway. If this input slot isn't used, 
+            this channel in the compiled normal map texture will not be used anyway. Please check how true is this,
+            but I believe this also will be optimized by the compiler? I honestly don't know. 
+        </p>
+    </info>
+    <p>
+        We need to slightly change how normal map is being sampled. Previous code doesn't account for the fourth channel. Remove previous 
+        line that decoded the normal map, and do this instead:
+    </p>
+    <pre><code class="language-hlsl">
+// Store full RGBA normal map texture separately, then make a new variable 
+// that stores only RGB channels and then decodes it. Alpha remains unaffected. 
+float4 NormalHeight = NormalMap.Sample( g_sAniso, uv ).rgba; 
+float3 normal = DecodeNormal( NormalHeight.rgb );
+    </code></pre>
+    <p>
+        Before moving forward, let's move back outside of <string>MainPs</string>, because we need to implement a new, custom function 
+        that handles prettier texture blend. Anywhere in the <string>PS</string> section, add this:
+    </p>
+    <pre><code class="language-hlsl">
+float ComputeBlendWeight( float flBlendIntensity, float flBlendSoftness, float flBlendRevealMask )
+{
+    float flScaledInput = ( flBlendIntensity * ( 1.0 + ( flBlendSoftness * 2.0 ) ) ) - flBlendSoftness;
+    float flMin = flScaledInput - flBlendSoftness;
+    float flMax = flScaledInput + flBlendSoftness;
+
+    return 1.0 - saturate( ( flBlendRevealMask - flMin ) / ( flBlendSoftness * 2.0 ) );
+}
+    </code></pre>
+    <info>
+        Credit goes to Facepunch and Valve (?) btw. This initially was part of the s&box shader code, but later it was ripped out 
+        and this code re-implements this feature. Thanks Ziks!  
+    </info>
+    <p>
+        This function will calculate proper blending between control value (in our case, that's vertex colors), user-defined 
+        blend softness, and given height mask. It will also ensure that final value stays within 0-1 radius.  
+    </p>
+    <p>
+        Also, let's make a new float variable that will control how smooth this blend texture appears. Value closer to 1 will make it look 
+        sharper, while 0 will blur the transition a lot. You should put this inside of <string>#if ( S_BLEND_LAYER )</string> in <string>PS</string>    
+    </p>
+    <pre><code class="language-hlsl">
+float g_flBlendSmoothness < UiType( Slider ); Range( 0, 1 ); Default( 0.5 ); UiGroup( "Settings,30/Blend Options,30/30"); >;
+    </code></pre>
+    <p>
+        Now, go into <string>#if ( S_BLEND_LAYER )</string> branch and let's change the third argument in <string>::lerp</string> function,
+        and instead of linking to i.vVertexColor, let's use this new function. 
+    </p>
+    <pre><code class="language-hlsl">
+mat = Material::lerp( mat, layer, ComputeBlendWeight( i.vVertexColor.r, g_flBlendSmoothness, NormalHeight.a ) );
+    </code></pre>
+    <p>
+        Go to the Material Editor and add a height mask for the main layer. 
+    </p>
+    <img src="/media/pt9_computeblend.png">
+    <p>
+        Notice how much natural this transition looks like, giving artists more options to make detailed blending on textures. And by the way, 
+        you can blend more than two textures together this way - if you really need it, you can repeat whole process to make texture inputs 
+        for 3rd and 4th layers, and then mix them together one by one. 
+    </p>
+    <p>
+        You can also check how is it done in <string>blendable</string> shader, it is also probably organized much nicer than this code.
+    </p>
+
+    <h2>Normal Map Blending</h2>
+    <p>
+        At last, let's do another fun thing. Let's use world-space normal to determine what area must be covered by the second layer!
+        To avoid even more shader combos piling up and increasing the compilation time, let's implement a simple checkbox variable instead.
+    </p>
+    <pre><code class="language-hlsl">
+bool g_bUseWorldSpaceNormals < UiType( CheckBox ); Default( 0 ); UiGroup( "Settings,30/Blend Options,30/31" ); >;
+    </code></pre>
+    <p>
+        Then use a simple conditional operator in the lerp function to switch between using vertex colors or world-space normals. 
+    </p>
+    <pre><code class="language-hlsl">
+mat = Material::lerp( mat, layer, ComputeBlendWeight( g_bUseWorldSpaceNormals ? NormalTransformed.b : i.vVertexColor.r, g_flBlendSmoothness, NormalHeight.a ) );
+    </code></pre>
+    <info>
+        Reminder: world-space normals are generated automatically after you process decoded normal map through the helper function
+        <string>TransformNormal()</string>. Using decoded normals won't work with this trick because they're in tangent space.
+    </info>
+    <p>
+        Enable this checkbox in material editor and see how texture is always applied at the top of your mesh! Rotate it, scale it, but it will always 
+        stay rendering at the top. 
+    </p>
+    <img src="/media/pt9_normalblend.png">
+    <p>
+        How does it work? Each channel in world-space normals represent the corresponding axis. Red channel is X axis, green channel is Y axis, 
+        and blue channel is Z axis. Since normals are within <b>-1 to 1</b> range, this can be used to determine the normals direction. 
+        If you use <b>-NormalTransformed.b</b> instead, it will apply this texture from the bottom, because negative value will represent 
+        <b>Z down</b>. If you do <b>NormalTransformed.r</b>, it will be applying the texture on <b>positive X axis</b>. 
+    </p>
+    <p>
+        I highly recommend messing around with how world-space normals work because this can be a very good and interactive way to understand 
+        how normals work, and what kind of data they represent. Don't forget, you can access all vector components using suffixes <string>RGBA</string>
+        or <string>XYZW</string>, both will be valid, and probably XYZW makes more sense when working with normals. 
+    </p>
+    <p>
+        Last, extra feature: instead of hardcoding this layer to blend only with the <b>Z up</b> of normals, let's allow artists 
+        define normal direction themselves. Make a new float3 vector variable with range clamped in -1 to 1. 
+        Then, in code, you will use <b>dot product</b> of <string>NormalTransformed</string> and this variable. 
+    </p>
+    <pre><code class="language-hlsl">
+// Must be inside of #if ( S_BLEND_LAYER ) block in PS too!
+float3 g_vNormalDirections < UiType( Slider ); Range3( -1, -1, -1, 1, 1, 1 ); Default3( 0, 0, 0 ); UiGroup( "Settings,30/Blend Options,31" ); >; 
+    </code></pre>
+    <p>
+        Them, in lerp function, replace <string>NormalTransformed.b</string> with HLSL's built-in math function which will calculate
+        the dot product: 
+    </p>
+    <pre><code class="language-hlsl">
+mat = Material::lerp( mat, layer, ComputeBlendWeight( g_bUseWorldSpaceNormals ? dot( NormalTransformed, g_vNormalDirections ) : i.vVertexColor.r, g_flBlendSmoothness, NormalHeight.a ) );
+    </code></pre>
+    <img src="/media/pt9_dotproduct.png">
+    <p>
+        Now you can define any direction of blend, as well as combine multiple axis together.
+    </p>
+    <p>
+        There are probably more ways to utilize blending and how can it be done, but so far I've shared two features I have used myself 
+        in <b>My Summer Cottage</b> and <b>Deathcard</b>. 
+    </p>
+    <a class="dl" href="/shaders/Pt9_TextureBlending.shader">
+        <div class="download">
+            <div class="icon">
+                <span class="material-symbols-sharp">file_open</span>
+            </div>
+            <div class="file">
+                <span>DOWNLOAD THE COMPLETE SHADER:</span>
+                <b>Pt9_TextureBlending.shader</b>
+            </div>
+        </div>
+    </a> 
+    <a class="dl" href="/assets/cliff_blending.fbx">
+        <div class="download">
+            <div class="icon">
+                <span class="material-symbols-sharp">deployed_code</span>
+            </div>
+            <div class="file">
+                <span>DOWNLOAD SAMPLE MODEL:</span>
+                <b>cliff_blending.fbx</b>
+            </div>
+        </div>
+    </a>
+</div>

@@ -1,0 +1,126 @@
+<div class="ArticleHeader">
+    <div class="icon">
+        <span class="material-symbols-sharp">qr_code</span>
+    </div>
+    <div class="description">
+        <span>shader fundamentals</span>
+        <h1>Introduction to Shaders</h1>
+    </div>
+</div>
+<div class="Article">
+    <p>
+        <i>
+            <b>IN THIS ARTICLE: </b> Basics of a shader pipeline. How does it work? What data it reads? How exactly this data is read?
+            Vertex? Pixel? Do we need to define our own vertex and pixel structs? How much effort it takes to make your own shader in s&box?
+        </i>
+    </p>
+    <hr>
+
+    <h3>Shaders, how do they work?</h3>
+    <p>
+        Okay, it is time to dive into the shaders. How are they working? Every mesh has vertices, and each vertex contains 
+        some sort of data. Every pixel on your screen contains data, too. If you saw shader code in the past, you saw that we have code 
+        that is processing vertices and then pixels. But why are we processing just <i>one</i> pixel and vertex? 
+    </p>
+    <p>
+        GPUs are awesome, they're extremely efficient thanks to the <i>parallel data</i> structure which allows simultaneously executing huge 
+        amounts of data in lots of threads. This is a very rough, inaccurate description, but imagine that instead of passing data of every screen pixel 
+        in a single pipe, there's unique thread for every pixel, allowing processing a huge mass of pixels simultaneously, which is extremely 
+        efficient. Imagine how horrible would it be to process each pixel in a single thread!
+    </p>
+    <p>
+        And because of this parallel data and very efficient GPU magic, shader code we write is executed for every given vertex 
+        and pixel. You're not writing code just for one specific pixel, this code will be executed on <i>every</i> pixel, and since each of them contains 
+        unique information (for example: texture coordinates, world position, geometric normals, etc.) this eventually turns into a cohesive, 
+        final image on your screen. 
+    </p>
+
+    <h3>Pipeline</h3>
+    <p>
+        While s&box needs just one shader file for it to build, technically shader consists of <b>multiple parts</b>. These are shader stages:
+        each stage has certain purpose and they're always executed in a strict order. Depending on the engine, sometimes one shader can be split 
+        by multiple files for each stage. In s&box, you need just one file.
+    </p>
+    <p>        
+        There are two necessary shader stages, first is <b>vertex shader</b>,
+        which is a starter point of your whole shader. This is where it reads vertex input data and does bunch of vertex manipulations, and returns
+        <b>PixelInput</b> struct.  
+    </p>
+    <p>
+        Second one is <b>fragment shader</b>. This is where we apply the pixel's color and return it, using all the data from <b>PixelInput</b>
+        to manipulate the color. We do all kinds of math here, and this is also a final stage in shader's pipeline. Now, lets take a look on how
+        whole shader pipeline looks like in s&box.
+    </p>
+    <img src="/media/rendering_pipeline_r0.png">
+    <info>
+        Tessellation was removed from s&box in early 2024. Geometry shaders are still available and will work in your shaders, but they are 
+        optional. To avoid throwing too much information at once, I'll come back to this much later. 
+    </info>
+    <p>
+        You're probably wondering, "wow! there must be lots of maths and data I need to define myself". Don't worry, s&box comes with pre-defined 
+        vertex/pixel structs that contain 99% of everything you need for surface shaders. s&box has bunch of presets when creating a new shader, 
+        so you don't have to do lots of setup either. And for lighting and most other basic graphics features, s&box comes with an easy-to-use 
+        default shading model that works with all PBR materials.
+    </p>
+    <p>
+        But you still need to take a look on data types in HLSL, because this what is used to represent all data inside HLSL.  
+    </p>
+
+    <h3>Data Types</h3>
+    <p>
+        HLSL uses types for variables. Don't worry, you'll see most of them in action very soon.
+
+        <ul>
+            <li>
+                <string>Texture2D</string> - this object represents a two-dimensional texture. Nearly all images you see online are 2D, so this is how your textures 
+                are also represented in shaders. To be used for actual math and other operations, it must be sampled first. When it's sampled, it is represented by <string>float</string>s.
+                There are also different texture types such as <string>Texture1D</string>, <string>Texture2DArray</string>, <string>Texture3D</string> and many others, useful for
+                some more specific techniques. You can read more about them <a href="https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/d3d11-graphics-reference-sm5-objects">here</a>.
+            </li>
+            <li>
+                <string>SamplerState</string> - you need it for defining how sampled texture is interpolated. It is necessary to have a SamplerState 
+                so you can sample <string>Texture2D</string> objects. One sampler can be used for as many textures as possible. You can have up to 16 samplers 
+                in your shader. (why would you need so many samplers?) 
+            </li>
+            <li>
+                <string>float</string> - <b>floating point value</b>. This means value can contain decimals. 
+                You'll be using this type for almost everything, because they are accurate, and accuracy is important for correct visuals. Colors, vertex positions, normals, etc.
+                Why? Most data in shaders is represented in [0-1] range, or [-1 - 1] (used by normals). Without precision, most data won't be accurate within 
+                this range. 
+            </li>
+            <li>
+                <string>half</string> - <b>half</b> is basically a lower precision <string>float</string>. To be honest I am not sure if they are working in s&box. 
+            </li>
+            <li>
+                <string>int</string> - <b>integer</b> is working as an... integer. Since it doesn't support decimals, this type is generally not used 
+                for data that requires precision. 
+            </li>
+            <li>
+                <string>uint</string> - <b>unsigned integer</b> is also available for use.
+            </li>
+            <li>
+                <string>bool</string> - <b>boolean</b>. It can be used for material settings, any special conditions, or anything else really. 
+            </li>
+        </ul>
+
+        See <a href="https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-scalar">Microsoft's documentation</a> for more types
+        and some more technical details.
+    </p>
+
+    <h3>SamplerStates</h3>
+    <p>
+        Just a quick word on SamplerStates. <string>SamplerState</string> defines how your texture is interpolated. There are multiple 
+        methods of interpolation: <b>point</b>, <b>bilinear</b>, <b>trilinear</b>, <b>anisotropic</b>. Point sampling will render 
+        your texture unfiltered, pixelated. Bilinear and others will interpolate color between two points of your texture, which gives it
+        smooth visuals - this is what most modern games use. 
+    </p>
+    <p>
+        You can see which SamplerStates s&box supports on the <a href="https://docs.facepunch.com/s/sbox-dev/doc/sampler-states-LlJc7ymJkq">documentation page</a>
+        here. It lists all available filters, as well as global samplers that you can always use out of the box.
+    </p>
+
+    <p>
+        That's probably everything what you need to know for now. As we start making more complex things, you'll be introduced to new concepts,
+        and I'll explain most of the stuff mentioned here. Now, lets make our first unlit shader!
+    </p>
+</div>

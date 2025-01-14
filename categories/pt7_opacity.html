@@ -1,0 +1,143 @@
+<div class="ArticleHeader">
+    <div class="icon">
+        <span class="material-symbols-sharp">blur_on</span>
+    </div>
+    <div class="description">
+        <span>shader fundamentals</span>
+        <h1>Opacity and Alpha Test</h1>
+    </div>
+</div>
+<div class="Article">
+    <p>
+        <i>
+            <b>IN THIS ARTICLE: </b> Setting up texture input slot for the opacity, exploring render states, adding opacity rendering
+            and alpha test.
+        </i>
+    </p>
+    <hr>
+    <p>
+        I probably don't have to explain why opacity in shaders exist, and in which cases you may need to enable it. Without any long introduction, 
+        let's start by adding a new static combo: transparency (especially with alpha test) does have some slight impact on the performance,
+        so it makes sense to wrap opacity functionality into an optional feature.  
+    </p>
+    <p>
+        In <string>FEATURES</string> section, add a new feature: 
+    </p>
+    <pre><code class="language-hlsl">
+Feature( F_TRANSPARENCY, 0..1, "Transparency" );
+    </code></pre>
+    <p>
+        Then move over back to fragment shader and add a new static combo:
+    </p>
+    <pre><code class="language-hlsl">
+StaticCombo( S_TRANSPARENCY, F_TRANSPARENCY, Sys( ALL ) );
+    </code></pre>
+    <p>
+        Now we can implement new combo-specific code. Besides of setting up a texture input and Texture2D for the opacity map, 
+        you also need to set certain <string>BoolAttribute</string> and <string>RenderState</string> properties that will indicate 
+        to the engine that this shader needs opacity rendering:
+    </p>
+    <pre><code class="language-hlsl">
+#if ( S_TRANSPARENCY )
+	BoolAttribute( translucent, true );
+	RenderState( BlendEnable, true );
+
+	CreateInputTexture2D( Opacity, Linear, 8, "", "_opacity", "Material,10/Transparency,10/70", Default( 1 ) );
+	Texture2D g_tOpacity < Channel( R, Box( Opacity ), Linear ); OutputFormat( BC7 ); SrgbRead( false ); >;
+#endif
+    </code></pre>
+    <p>
+        Render States indicate various things about how shader is rendered on screen. There are many properties, and you can read more 
+        about them <a href="https://wiki.facepunch.com/sbox/Shader_States">on s&box wiki</a>. There's lots of them, but you don't have to 
+        worry about anything else other than <string>BlendEnable</string> for now.
+    </p>
+    <p>
+        <string>BlendEnable</string> specifies that blending is enabled for this shader, what is required for rendering transparency 
+        in this shader. Without this state, your material will appear opaque. <string>translucent</string> in BoolAttribute thing 
+        is also necessary for correct rendering.
+    </p>
+    <p>
+        In <string>MainPs</string>, add another combo-specific <string>#if</string> section: sample opacity map and store it 
+        in Material's <string>Opacity</string> slot. 
+    </p>
+    <pre><code class="language-hlsl">
+#if ( S_TRANSPARENCY )
+    mat.Opacity = g_tOpacity.Sample( g_sAniso, uv ).r; 
+#endif
+    </code></pre>
+    <img src="/media/pt7_trans.png">
+    <p>
+        If you enable "Transparency" feature and try adding an opacity mask, you'll see that your object actually appears transaprent now, 
+        very nice! However, something funky will happen if you try enabling backfaces on this material...
+    </p>
+    <img src="/media/pt7_backfaces.png">
+    <p>
+        Everything behind the surface that renders in front of you looks a bit off... why is there some missing, empty spot on the right?
+        This is one of the quirks about transparency renderig in shaders. Unfortunately sorting opacity in the correct order still doesn't have 
+        an ideal solution, but there's a opacity rendering technique called <b>"alpha to coverage"</b> (also sometimes called as "alpha test")
+        which is aimed to solve this problem. 
+    </p>
+
+    <h2>Alpha to Coverage</h2>
+    <p>
+        To implement "alpha to coverage", please go back to <string>FEATURES</string>, this time add a new feature for the alpha test 
+        specifically. Also, to make features function nicely, let's add a feature rule which will prevent enabling alpha test for given material, 
+        if transparency is turned off. 
+    </p>
+    <pre><code class="language-hlsl">
+Feature( F_ALPHA_TEST, 0..1, "Transparency");
+    
+// Makes F_ALPHA_TEST unavailable if F_TRANSPARENCY isn't enabled yet. 
+FeatureRule( Requires1( F_ALPHA_TEST, F_TRANSPARENCY ), "Alpha test is available only with transparency enabled!" );
+    </code></pre>
+    <p>
+        Feature rules is a special thing that allows excluding/including certain features between each other. Besides of making some features 
+        more obvious to use for your lovely artists, this also allows slightly cutting down compilation time since this will also exclude 
+        generating shader variants for features that are set to be incompatible with each other.  
+    </p>
+    <p>
+        You can read more about feature rules, their examples & usage on <a href="https://wiki.facepunch.com/sbox/AnatomyOfVFX#featurerules">wiki page here</a>. 
+    </p>
+    <p>
+        Then, inside the combo-specific code block for the transparency, we need to add another RenderState property, this time for 
+        <string>AlphaToCoverageEnable</string>. Second argument in <b>RenderState</b> is expecting a supported option, most of the time 
+        it'll be a boolean. We can explicitly link this new alpha test feature to represent the current value for this state: 
+    </p>
+    <pre><code class="language-hlsl">
+RenderState( AlphaToCoverageEnable, F_ALPHA_TEST );
+    </code></pre>
+    <p>
+        Yeah! No need to create another static combo and shove another <string>#if</string> block for things like render states, bool attributes, 
+        and a few other things, you can directly link the feature instead. Now, if you try enabling backfaces and alpha test, you'll see that 
+        your transparent material no longer freaks out!
+    </p>
+    <img src="/media/pt7_alphatest.png">
+
+    <h2>Some Performance Quirks</h2>
+    <p>
+        Alpha test is very helpful for materials where you want to render backfaces, or when single mesh with a transparent material somehow 
+        overlaps with itself. Best example would be foliage: for trees and other things, alpha test is necessary.
+    </p>
+    <p>
+        However, this doesn't come as a cheap solution. While this will be harmless for simple things like windows and some other primitive 
+        surfaces, alpha test can get increasingly more expensive to render when there's a huge amount of transparent objects around. Again, 
+        foliage often suffers from it; lots of trees, grass and bushes can make rendering much more costly. So please be careful with transparency, 
+        and don't go too crazy with transparent stuff. 
+    </p>
+    <p>
+        Next time I'll tell about vertex colors, what are the most common use cases for them, and how can you add vertex colors in your shader.
+        It will be very simple!
+    </p>
+    
+    <a class="dl" href="/shaders/Pt7_Opacity.shader">
+        <div class="download">
+            <div class="icon">
+                <span class="material-symbols-sharp">file_open</span>
+            </div>
+            <div class="file">
+                <span>DOWNLOAD THE COMPLETE SHADER:</span>
+                <b>Pt7_Opacity.shader</b>
+            </div>
+        </div>
+    </a> 
+</div>

@@ -1,0 +1,72 @@
+<div class="ArticleHeader">
+    <div class="icon">
+        <span class="material-symbols-sharp">format_size</span>
+    </div>
+    <div class="description">
+        <span>references</span>
+        <h1>Naming Conventions</h1>
+    </div>
+</div>
+<div class="Article">
+    <p>
+        If you are wondering what do things like <string>g_fl</string>, <string>Ws</string> or <string>Ts</string> mean: usually this is how some devs 
+        indicate which type is expected, like for variables or functions. This isn't necessary by any means, you can give your 
+        functions and variables any name. (although having consistent naming convention is nice if you're working in a team). 
+    </p>
+
+    <h2>List of Common Definitions</h2>
+    <p>
+        <ul>
+            <li>
+                <string>g_</string> prefix usually stands for <b>"global"</b>. Usually this is how devs indicate that data is accessible 
+                from anywhere, like <a href="https://docs.facepunch.com/s/sbox-dev/doc/global-variables-kSdlbnBNq8">global variables</a>.
+            </li>
+            <li>
+                <string>_fl</string> prefix stands for <b>float</b>. It indicates that this is a single-component value specifically, not
+                a vector float. 
+            </li>
+            <li>
+                <string>_i</string> prefix stands for <b>int</b>.
+            </li>
+            <li>
+                <string>_v</string> usually just stands for a <b>vector</b>, which can be float2, float3 or float4. Maybe int vector too.  
+            </li>
+            <li>
+                <string>_mat</string> indicates that this is a matrix variable. 
+            </li>
+            <li>
+                <string>Os</string> suffix stands for <b>object space</b>. Before vertices are transformed into world-space/projection space coordinates,
+                usually they are sent to shaders in object space coords first. 
+            </li>
+            <li>
+                <string>Ws</string> suffix stands for <b>world space</b>. Like world-space normals, world space pixel position, 
+                anything that describes any data in world coordinates. 
+            </li>
+            <li>
+                <string>Ps</string> suffix is <b>projection space</b>. You could see this in vertex struct. Before finishing vertex shader, 
+                you're expected to transform your vertices into <i>projection space</i>. So functions called something like
+                <b>Position3WsToPs( ... );</b> means "convert float3 world-space position into projection space".
+            </li>
+            <li>
+                <string>Ss</string> suffix is <b>screen space</b>. PixelInput struct contains <string>i.vPositionSs</string>, which is essentially 
+                UV for your current camera's viewport. Even if you're making a surface shader for your mesh, this viewport UV, unlike the rest 
+                of your mesh, is actually in screen-space coordinates. 
+            </li>
+            <li>
+                <string>Ts</string> suffix is <b>tangent space</b>. Usually this is how you may want to name your tangent-space normal maps variables,
+                that are not transformed into world space normals yet.
+            </li>
+        </ul>
+    </p>
+    
+    <h2>Automatic Variable Cleanup</h2>
+    <p>
+        Material Editor comes with a little handy feature: if you have variables that follow this naming convention, and they are also 
+        exposed for editing by artists, any specific prefixes like <string>g_fl</string> will be automatically removed from the name 
+        of this variable in material editor UI.
+    </p>
+    <p>
+        It will also automatically format variable name into a readable format. For example, <string>g_vMyVectorWs</string> will be displayed 
+        in Material Editor UI as <b>"My Vector"</b>.
+    </p>
+</div>

@@ -1,0 +1,68 @@
+<div class="ArticleHeader">
+    <div class="icon">
+        <span class="material-symbols-sharp">view_timeline</span>
+    </div>
+    <div class="description">
+        <span>references</span>
+        <h1>Normal Map Types</h1>
+    </div>
+</div>
+<div class="Article">
+    <p>
+        There's one little thing worth clarifying, since there's a chance that you might run it at some point, especially as a beginner artist. 
+        Not every normal map is the same. Surface normals can be defined in various spaces, such as <b>tangent</b> and <b>world space</b>,
+        and normal format can be different, too - <b>OpenGL</b> (+Y axis) or <b>DirectX</b> (-Y axis) formats.
+    </p>
+    <p>
+        This short article will clarify the difference, and how can you visually tell the difference between normal map types. Also, I'll show 
+        a quick example of how normal map looks like deconstructed.
+    </p>
+
+    <h3>Normal Map Format</h3>
+    <p>
+        I don't know why, but <b>OpenGL</b> and <b>DirectX</b> ended up implementing two different normal map formats, with the only difference 
+        being the orientation of Y axis. Just take a look on the image:
+    </p>
+    <img src="/media/normalmaps2.png">
+    <p>
+        s&box uses <b>OpenGL</b> format. If you have a normal map in DirectX format, you can open any image editor software that supports 
+        editing specific image channels, and simply invert the green channel. That'll convert the normal map into OpenGL format.
+        Using incorrect format won't instantly break your entire game, however this will cause inaccurate shading. 
+    </p>
+
+    <h3>Normal Space</h3>
+    <p>
+        Surface normals can be defined in varying ways. There are <b>tangent space</b> normals. They usually appear mostly blue, 
+        with other colors showing up on surface bumps and other spots of your texture. Tangent-space normals are automatically 
+        transformed into world-space normals at runtime via shaders, at least this is what s&box shaders do. 
+        This is the exact type of normal map you should be using for s&box, and usually most other game engines require tangent-space normals too.
+    </p>
+    <p>
+        Other type are <b>object-space</b> normals. It usually appears rainbow-ish, 
+        if that makes sense. Each channel represents normals in world space, so red channel is X axis, green channel is Y axis, blue channel is Z axis.
+        Generally they are used for baking and texturing purposes, so you shouldn't use these as an input normal map for your materials.  
+    </p>
+    <img src="/media/normalmaps3.png">
+    <p>
+        There are also <b>world-space</b> normals. Visually, they are very similar to object-space normals, with the only difference is that usually 
+        they are generated at runtime via shaders, by transforming material's tangent-space normal map into world-space. Instead of being baked as object-space 
+        normals, they are constantly re-calculated and are linked to world coordinates.  
+    </p>
+    <p>
+        To calculate world-space normals using tangent-spawn normal map, you can use a helper function that comes with s&box out of the box. 
+        It will require mesh geometric normals, and tangents data - assuming that you're using <string>PixelInput</string> struct:
+    </p>
+    <pre><code class="highlight-hlsl">
+// Assuming that you're PixelInput struct, that contains tangents (i.vTangentUWs/i.vTangentVWs)
+// and geometric normals (i.vNormalWs). Assuming that you have a Texture2D named "normal".
+
+Material myMaterial = Material::Init();
+
+float3 tangentNormals = DecodeNormal( normal.Sample( g_sAniso, i.vTextureCoords.xy ) );
+myMaterial.Normal = TransformNormal( tangentNormals, i.vNormalWs, i.vTangentUWs, i.vTangentVWs );
+    </code></pre>
+    <p>
+        If you're using s&box default shading model, you always must transform your normals into world space! Otherwise you'll probably run 
+        into weird, incorrect shading on your meshes. 
+    </p>
+</div>

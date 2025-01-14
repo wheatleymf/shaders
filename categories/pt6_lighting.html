@@ -1,0 +1,321 @@
+<div class="ArticleHeader">
+    <div class="icon">
+        <span class="material-symbols-sharp">model_training</span>
+    </div>
+    <div class="description">
+        <span>shader fundamentals</span>
+        <h1>Lighting and Shading Model</h1>
+    </div>
+</div>
+<div class="Article">
+    <p>
+        <i>
+            <b>IN THIS ARTICLE: </b> adding PBR lighting and Material component to our shader. Adding input slots for all 
+            required input slots, material objet, and returning a lit color.
+        </i>
+    </p>
+    <hr>
+    <p>
+        In this article we're going to make a new shader. Grab your unlit shader and gut out almost everything: clean out contents in FEATURES, 
+        code in MainPs, everything outside of MainPs in fragment shader. We're starting almost from scratch because converting unlit shader 
+        would take more time and redundant. You're going to use same techniques to build a lit shader. 
+    </p>
+    <p>
+        s&box comes with a built-in standard shading model, which handles everything we need to get a good looking 
+        <a href="https://learnopengl.com/PBR/Theory">PBR lighting</a>. It reads the information from <string>PixelInput</string>
+        and the <string>Material</string> object. Material consists of properties like albedo, normal, roughness, metalness, ambient
+        occlusion, etc... and these properties are used to calculate the lighting. 
+    </p>
+    <img src="/media/pt6_pipeline.png">    
+    <p>
+        This image shows all required texture maps for PBR rendering. I recommend checking out the linked article about PBR since it shows 
+        quite well how various texture maps affect the surface visuals. Let's start with adding all texture inputs.
+    </p>
+
+    <h2>Texture Inputs</h2>
+    <p>
+        Add texture inputs for <b>albedo map</b>, <b>normal map</b>, <b>roughness map</b>, <b>metalness map</b>, <b>ambient occlusion</b>,
+        and <b>tint mask</b> inside the fragment shader, <i>outside</i> of <string>MainPs</string>. 
+    </p>
+    <pre><code class="language-hlsl">
+#define CUSTOM_MATERIAL_INPUTS 
+#include "common/pixel.hlsl"
+
+//
+// Prepare inputs for all textures
+//
+CreateInputTexture2D( Color, 			Srgb, 	8, "", "_color", "Material,10/Albedo Map,10/10", Default3( 1.0, 1.0, 1.0 ) );						
+CreateInputTexture2D( ColorTintMask, 	Linear, 8, "", "_tint", "Material,10/Albedo Map,10/20", Default( 1 ) );						
+CreateInputTexture2D( Normal, 			Linear, 8, "NormalizeNormals", "_normal", "Material,10/Normal Maps,10/30", Default3( 0.5, 0.5, 1.0 ) );		
+CreateInputTexture2D( Roughness, 		Linear, 8, "", "_rough", "Material,10/Roughness,10/40", Default( 1 ) );											
+CreateInputTexture2D( Metalness, 		Linear, 8, "", "_metal",  "Material,10/Metalness,10/50", Default( 0 ) );
+CreateInputTexture2D( AmbientOcclusion, Linear, 8, "", "_ao",  "Material,10/Ambient Occlusion,10/60", Default( 1 ) );
+    </code></pre>
+    <p>
+        This will create input slots for all necessary textures used by PBR. As you can see, only color map and normals are <string>float3</string>,
+        since they're in RGB format. But the only colored texture that uses sRGB color space is a <b>Color</b> slot. This is necessary to ensure that 
+        albedo map appears the same as in other image editing/preview software.   
+    </p>
+    <p>
+        Normal maps, despite being a colored map too, don't have to be processed in sRGB color space. Technically, it's a packed texture consisting 
+        of three unique maps, so for proper precision they must be handled in linear color space. This also applied to nearly all other grayscale maps, 
+        like masks and other textures that represent data instead of color. 
+    </p>
+    <p>
+        Now, let's create Texture2D's for these texture. Besides of being able to sample these textures later in <string>MainPs</string> function, 
+        by declaring these textures we signal to s&box how these textures must be packed in compiled textures. More explanations below.
+    </p>
+    <pre><code class="language-hlsl">
+// 
+// Create Texture2D for all basic inputs
+// Albedo (3 channels) and tint mask (1 ch) go to ColorMap texture. (float4 in total)
+// Normal map (3 channels) is stored separately. (float3 as a result)
+// Roughness/Metalness/AO (1 channel each) are stored together in a single texture (float3 in total) 
+//
+Texture2D ColorMap  < Channel( RGB, Box( Color ), Srgb ); Channel( A, Box( ColorTintMask ), Linear ); OutputFormat( BC7 ); SrgbRead( true ); >;
+Texture2D NormalMap < Channel( RGB, Box( Normal ), Linear ); OutputFormat( DXT5 ); SrgbRead( false ); >; 
+Texture2D g_tRma    < Channel( R, Box( Roughness), Linear ); Channel( G, Box( Metalness ), Linear); Channel( B, Box( AmbientOcclusion ), Linear ); OutputFormat( BC7 ); SrgbRead ( false ); >; 
+    </code></pre>
+    <p>
+        Instead of having to create new Texture2D for every texture input slot, you can pack several input slots into appropriate channels 
+        of a single Texture2D. This allows significantly reducing amount of compiled texture files, and you'll have to 
+        sample less textures in the actual fragment shader. 
+    </p>
+    <h3>Side notes: Texture packing</h3>
+    <p>
+        This is especially beneficial for amount of textures s&box will have to compile for every material that uses your shader.
+        You probably know this already, but your game ships not with the source texture files you add in your material folder. 
+        Published s&box game comes with compiled textures: they're automatically generated when you save the material in the editor. 
+    </p>
+    <p>
+        These compiled textures are stored in the s&box-specific file format, compressed and packed. Using Texture2D annotations you control 
+        which compression method is applied, and how exactly they're packed. Properly packed textures can slightly reduce total size of your material.
+    </p>
+    <img src="/media/texturepacking.png">
+
+    <h2>Sampling Textures</h2>
+    <p>
+        Before proceeding, let's reinstate texture scroll, scale and tint variables from the unlit shader. This was done as a part of 
+        article "Textures and Variables". 
+    </p>
+    <pre><code class="language-hlsl">
+// Texture scale & offset from the previous unlit shader
+int2    TextureScrollDirection < UiType( Slider ); Range2( -1, -1, 1, 1 ); Default2( 0, 0 ); UiGroup( "Settings,20/Scroll,20/10" ); >;
+float2  TextureScrollSpeed < UiType( Slider ); Range2( 0, 0, 4, 4 ); Default2( 1, 1 ); UiGroup( "Settings,20/Scroll,20/20" ); >;
+float   TextureScale < UiType( Slider ); Range( 0, 5 ); Default( 1 ); UiGroup( "Settings,20/Scale,20/30" ); >;
+float3  TextureTint < UiType( Color ); Default3( 1, 1, 1 ); UiGroup( "Settings,20/Texture Tint,20/40" ); >;
+    </code></pre>
+    <p>
+        And now let's move to <string>MainPs</string> block. Let's bring back the UV functionality that allows changing texture scale, 
+        scrolling speed and direction. 
+    </p>
+    <pre><code class="language-hlsl">
+float2 uv = i.vTextureCoords.xy * TextureScale;
+uv += g_flTime * TextureScrollSpeed * TextureScrollDirection;   
+    </code></pre>
+    <p>
+        And now let's sample all of the textures you have defined in the fragment shader. Don't forget: any texture inputs that are initialized 
+        but never used in the actual shader code, won't show up in the material editor. 
+    </p>
+    <pre><code class="language-hlsl">
+float4 albedo = ColorMap.Sample( g_sAniso, uv ).rgba;
+float3 normal = DecodeNormal( NormalMap.Sample( g_sAniso, uv ).rgb );
+float3 rma = g_tRma.Sample( g_sAniso, uv ).rgb;
+    </code></pre>
+
+    <h2>Normal Decoding</h2>
+    <p>
+        You have probably noticed a new function, <string>DecodeNormal()</string>. What is it for? Before your normal map texture 
+        can be used in the shader, it must be decoded into proper format first: don't forget that color maps are working in <b>[0-1]</b>
+        range, while normal maps are set in <b>[ -1 - 1]</b> range. TBH there are probably some other things that this function does. 
+    </p>
+    <p>
+        Normal map textures always must be decoded before using them for (almost) all kinds of operations. For the rest of textures, 
+        everything is done in a simple manner. Since <string>ColorMap</string> contains four channels, it will be sampled into 
+        <string>float4</string> vector. Normals and Roughness-Metalness-AO pack use three channels, so it'll be float3 for both of them. 
+    </p>
+
+    <h3>Transforming Normals to World Space</h3>
+    <p>
+        Another necessary thing we must do before continuing, is <b>transforming normals to world space</b>. This is necessary to get 
+        normal shading on your model working correctly. Luckily, s&box has a built-in helper function for this too, and all you need to do 
+        is this:
+    </p>
+    <pre><code class="language-hlsl">
+// Don't forget to decode your normal map before doing this!
+float3 NormalTransformed = TransformNormal( normal, i.vNormalWs, i.vTangentUWs, i.vTangentVWs );
+    </code></pre>
+    <p>
+        This is the final normal map data you'll be passing into the shading model. This must be done <i>after</i> decoding the normal map texture.
+        If you're familiar with HLSL syntax, you're free to do this in a more compact way, creating a new separate variable isn't necessary.    
+    </p>
+    <p>
+        Besides of providing correct normal data for the shading model, world-space normals are useful for a few tricks and other things. 
+        While these effects won't be a subject of this article, I'll probably show them sometime later in the future. 
+    </p>
+    <p>
+        But where do all these texture go after all this? This is where everything goes in a special <a href="https://docs.facepunch.com/s/sbox-dev/doc/material-gVbbmBfLmp">Material class</a>. 
+        It contains all necessary slots required for PBR, and s&box default shading model relies on this class to pass all textures 
+        and other important data. 
+    </p>
+
+    <h2>Material Class</h2>
+    <p>
+        I recommend looking up the definition of a Material class mentioned on the docs page above, it shows all available slots you can 
+        fill out. There are two main functions you can use to properly initialize a new Material class:
+
+        <ul>
+            <li>
+                <string>Material::From( PixelInput i )</string> will automatically process all required texture inputs and expose them 
+                to Material Editor for you.  
+            </li>
+            <li>
+                <string>Material::Init()</string> will create a new <b>empty</b> Material class. This does not generate any input slots 
+                or anything else, you must create them and fill out manually, providing full control over what goes into your shaders. 
+                <b>This is what we will use here.</b>
+            </li>
+        </ul>
+    </p>
+    <p>
+        Material class comes as a part of the <string>common/pixel.hlsl</string> file, that you always must include at the beginning 
+        of your fragment shader block. Using this class is necessary if you're working with the standard shading model, although this 
+        class can be easily adapted for any other custom lighting models if you'd like. 
+    </p>
+    <p>
+        Below all other code with UV manipulations and texture sampling, add this line:
+    </p>
+    <pre><code class="language-hlsl">
+Material mat = Material::Init();
+    </code></pre>
+    <p>
+        Now, you can fill out all available slots. In our case, this will look like this: 
+    </p>
+    <pre><code class="language-hlsl">
+// Re-implements albedo tint from previous unlit shader
+mat.Albedo = lerp( albedo.rgb, albedo.rgb * TextureTint, albedo.a );
+mat.Normal = NormalTransformed;
+mat.Roughness = rma.r;
+mat.Metalness = rma.g;
+mat.AmbientOcclusion = rma.b;
+mat.TintMask = albedo.a;
+    </pre></code>
+    <p>
+        To pick specific texture from these "packed" vectors, just select the corresponding channel that you specified in your 
+        Texture2D declarations. Here, roughness map is on red channel, metalness is on green, and ambient occlusion in on blue. 
+        Tint mask is stored along with a color map as a 4th channel, alpha.      
+    </p>
+    <p>
+        That's it, your material object is now complete. There are other slots you can setup, but usually you don't need to worry about this. 
+        Last thing you have to do is, pass this material and your PixelInput struct into the standard shading model.
+    </p>
+
+    <h2>Passing to Shading Model</h2>
+    <pre><code class="language-hlsl">
+return ShadingModelStandard::Shade( i, mat );
+    </code></pre>
+    <p>
+        <string>ShadingModelStandard</string> is a class, although the only function you will probably interact with, is <string>Shade( i, mat )</string>.
+        We are returning this method because it brings back the final, shaded pixel of <string>float4</string> type. Don't forget, last component 
+        represents opacity, but since this shader currently does not support transparency, it remains unused.
+    </p>
+    <p>
+        Go to Material Editor and try creating a new material with your lit shader. Fill out the texture input and see how does it look like!
+    </p>
+    <img src="/media/pt6_litshader.png">
+    <p>
+        At this point, you can consider your lit shader to be complete. It supports all base PBR maps and renders correctly. However,
+        it would be wrong to stop here; let's add some more features! 
+    </p>
+
+    <h2>Extra #1: Adding Emission</h2>
+    <p>
+        Emission map is basically a colored texture map that makes your material appear lit even in dark/shaded areas. This is useful for adding fake lighting onto props, 
+        or some other effects. Just like albedo, emission map is expected to be read in sRGB color space. 
+    </p>
+    <p>
+        Since this feature is usually not required for most materials, let's wrap it behind a static combo first. If you haven't checked out 
+        the article that explains combos, please read it first. In <string>FEATURES</string> block, above the features include, add a new line 
+        defining emission feature:
+    </p>
+    <pre><code class="language-hlsl">
+Feature( F_EMISSION, 0..1, "Extra Features" );
+    </code></pre>
+    <p>
+        Then go back to the fragment shader, and at the top of the code, add a definition for new static combo called <string>S_EMISSION</string>.
+    </p>
+    <pre><code class="language-hlsl">
+StaticCombo( S_EMISSION, F_EMISSION, Sys( ALL ) );
+    </code></pre>
+    <p>
+        Now let's write combo-specific code. Combo-specific combo starts with <string>#if ( CONDITION )</string> and end with 
+        <string>#endif</string>. Inside of it, make a new texture input slot for the emission map, set to be read in sRGB color space, 
+        then make a new Texture2D declaration. For some extra control, add a new float variable that affects the intensity of this emission map.
+    </p>
+    <pre><code class="language-hlsl">
+#if ( S_EMISSION )
+    CreateInputTexture2D( Emission, Srgb, 8, "", "_em", "Material,10/Emission,10/70", Default3( 0, 0, 0 ) );
+    Texture2D EmissionMap < Channel( RGB, Box( Emission), Srgb ); OutputFormat( BC7 ); SrgbRead( true ); >;
+
+    float g_flEmissionStrength < UiType( Slider ); Range( 0, 8 ); Default( 1 ); UiGroup( "Material,10/Emission,10/71"); >;
+#endif
+    </code></pre>
+    <p>
+        Great, all you have to do now is go to <string>MainPs</string> and add another combo code which will sample the emission map, 
+        multiply it by your new emission strength variable, and then store it into material object's "Emission" slot. You can implement this 
+        anywhere in the code after the initialization of your material object. 
+    </p>
+    <pre><code class="language-hlsl">
+#if ( S_EMISSION )
+    mat.Emission = EmissionMap.Sample( g_sAniso, uv ).rgb * g_flEmissionStrength;
+#endif
+    </code></pre>
+    <p>
+        Done! Now, once you compile this shader, new feature will show up at the side bar of Material Editor. Turn it on, and emission input slot 
+        will appear. 
+    </p>
+    <img src="/media/pt6_emission.png">
+
+    <h2>Extra #2: Normal Map Intensity</h2>
+    <p>
+        Although not necessary, but you can control the intensity of a normal map in your shader. This is fairly easy to do, and should give slghtly more 
+        control for artist that will use your shader.
+    </p>
+    <p>
+        First, add a new <string>float</string> variable that will control the intensity of your normal map. You can add it anywhere you'd like. 
+    </p>
+    <pre><code class="language-hlsl">
+float g_flNormalIntensity < UiType( Slider ); Range( 0, 3 ); Default( 1 ); UiGroup("Material,10/Normal Map,10/31"); >; 
+    </code></pre>
+    <p>
+        Then inside the <string>MainPs</string> block, you need to multiply <i>decoded</i> normal map's <b>red</b> and <b>green</b> channel 
+        components by this new variable. We're explicitly updating only two channels because this is what represent actual "bumps" in the normal 
+        map in tangent-space. You shouldn't mess with blue channel as it will break the visuals. 
+    </p>
+    <pre><code class="language-hlsl">
+// This must be done AFTER decoding, but BEFORE transforming!
+normal.rg *= g_flNormalIntensity;
+    </code></pre>
+    <p>
+        As a result, you can now adjust how "intense" normal map appears. Value reaching zero will make normal map appear flatter, 
+        while values above 1 will make it appear significantly bumpier. Keep in mind that excessively large values will likely look ugly, 
+        so be careful with this!
+    </p>
+    <img src="/media/pt6_normalstrength.png">
+
+    <p>
+        That's it for now! In the future, I may update this article with some new extra features, but this stuff should be enough for now. 
+        In next article we'll add opacity to this shader, explore alpha test and some other specifics. 
+    </p>
+
+    <a class="dl" href="/shaders/Pt6_Lighting.shader">
+        <div class="download">
+            <div class="icon">
+                <span class="material-symbols-sharp">file_open</span>
+            </div>
+            <div class="file">
+                <span>DOWNLOAD THE COMPLETE SHADER:</span>
+                <b>Pt6_Lighting.shader</b>
+            </div>
+        </div>
+    </a> 
+</div>

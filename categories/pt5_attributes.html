@@ -1,0 +1,202 @@
+<div class="ArticleHeader">
+    <div class="icon">
+        <span class="material-symbols-sharp">linked_services</span>
+    </div>
+    <div class="description">
+        <span>shader fundamentals</span>
+        <h1>Render Attributes</h1>
+    </div>
+</div>
+<div class="Article">
+    <p>
+        <i>
+            <b>IN THIS ARTICLE: </b> why do you need RenderAttributes, how can they be accessed and what data we can send over 
+            to your custom shader. Sending data globally and locally for specific GameObjects. 
+        </i>
+    </p>
+    <hr>
+    <info>
+        Shader attributes are also explained on <a href="https://docs.facepunch.com/s/sbox-dev/doc/attributes-and-variables-UMUgpxSzA1">s&box documentation website</a>.
+    </info>
+    <p>
+        <b>Render Attributes</b> allow passing any sorts of data from C# to your shader. It can be done either by passing the data 
+        globally on scene, or passing it for individual GameObjects. This is also how you toggle dynamic combos, if you are using them 
+        in your shader.  
+    </p>
+    <p>
+        <a href="https://sbox.game/dev/api/Sandbox.RenderAttributes">RenderAttributes</a> is a class. It exists in <string>Scene</string>
+        itself, and <string>SceneModel</string>. They are also utilized for screen post-processing components. If you want to make some of your 
+        shader variables to be accessible through Render Attributes, you need to add a special annotation.
+    </p>
+    <info>
+        Shader variables that are exposed as a render attribute won't be visible in Material Editor. You will be able to control them 
+        only through C# code of your custom component. 
+    </info>
+
+    <h3>Adding attribute in shader</h3>
+    <p>
+        To show how do dynamic combos and attribute variables work, lets try overriding the final color through C# code. 
+    </p>
+    <p>
+        Defining new attribute available for updating through C# code is very easy. You just have to make a new variable and give it a
+        single annotation <string>< Attribute( "NameGoesHere" ); >;</string>.
+    </p>
+    <pre><code class="language-hlsl">
+float3 OverrideColor < Attribute( "MyOverrideColor" ); >;
+    </code></pre>
+    <p>
+        If you'd like, you can also add an annotation <string>Default3()</string> (since this is a float3 variable) - this will allow the attribute 
+        to fallback to a specific value instead of appearing black ( <string>float3(0, 0, 0)</string> ) when there's no data assigned to this property 
+        from your C# code.
+    </p>
+    <p>
+        There's no necessity to wrap this behind a dynamic combo, so it's going to exist in all shader variants. Now you should 
+        update the code for the pixel we're returning in <string>MainPs</string>. Let's do something neat: instead of using 
+        a bulky if-statement with our dynamic combo, you can just use a classic ternary operator instead. 
+    </p>
+    <pre><code class="language-hlsl">
+return float4( D_OVERRIDE_COLOR ? OverrideColor : MyTexture.rgb, 1 );
+    </code></pre>
+    <info>
+        Please note that you won't be able to do this with combos if one of the variables inside this ternary (conditional) operator
+        exists only in one of the shader variants.
+        <br><br>
+        For example, if you have a variable that exists only in code for a specific combo, and then you try to access it outside of this 
+        combo block, your shader won't compile - because there will be one shader variant that has this combo code excluded, which means 
+        this variable will not exist.  
+    </info>
+    <p>
+        Now shader will return the color that you're passing from a custom C# component if dynamic combo <string>D_OVERRIDE_COLOR</string>
+        is enabled. It's time to implement this C# component.
+    </p>
+
+    <h3>Creating a C# component for controlling attributes</h3>
+    <info>
+        I won't thoroughly explain the every bit of C# code here, I am expecting that you know how to do this already. I'm just showing 
+        the basics how to interact with certain classes and methods to make them work with your custom shader.
+    </info>
+    <p>
+        Generally, there are two primary ways to control render attributes of a surface shader. One of them is updating values 
+        globally through scene, which will update all objects on your scene. Or grabbing GameObjects and update their attributes 
+        through SceneObject individually.
+    </p>
+    <p>
+        <ul>
+            <li>
+                To update the combo globally, grab scene's <string>RenderAttributes</string>
+                by referencing <string>Scene.RenderAttributes</string>. Setting the value for combo is done using 
+                <a href="https://sbox.game/dev/api/Sandbox.RenderAttributes/SetCombo">RenderAttributes.SetCombo</a>. 
+                So <string>Scene.RenderAttributes.SetCombo( "D_SOME_RUNTIME_THING", 1 );</string> will set your dynamic combo to one, and this will
+                be applied to every object with this material and shader on scene.
+            </li>
+            <li>
+                To update the combo just for an individual object, you must access the GameObject's <string>SceneObject</string>
+                component, where it contains <string>Attribute</string> component. 
+                <string>(your SceneObject).Attributes.Set( "D_SOME_RUNTIME_THING", 1 )</string> will enable the combo just for selected object specifically.
+            </li>
+        </ul>
+    </p>
+    <p>
+        Make a new component and give it any name you prefer. Inside of your new C# component, add to your class <string>: Component</string>
+        and <string>Component.ExecuteInEditor</string>. It'll be easier to preview and mess with properties without going into play mode.
+    </p>
+    <p>
+        Add a public property with <string>Color</string> type and bool property. And add a private variable for <string>ModelRenderer</string>
+        component. Make an override for <string>OnEnable()</string>, you have to try grab the ModelRenderer component from this GameObject first. 
+    </p>
+    <pre><code class="language-csharp">
+protected override void OnEnabled()
+{
+    // Try to fetch the ModelRenderer component from this GameObject, since this is where
+    // we'll get the SceneModel.
+    if ( GameObject.Components.TryGet< ModelRenderer >( out var renderer, FindMode.EverythingInSelf ) )
+    {
+        _modelRenderer = renderer;
+    }
+        else
+    {
+        Log.Error( "This GameObject is missing a ModelRenderer component. :(" );
+        return;
+    }
+
+    base.OnEnabled();
+}
+    </code></pre>
+    <p>
+        On component start, it will try getting the ModelRenderer component of this GameObject. If it exists, it will be 
+        stored in the local private variable called <string>_modelRenderer</string>. If it's missing, then we will return 
+        with a sad error message.
+    </p>
+    <p>
+        Now add an override for <string>OnEnabled()</string>. This is where you're going to constantly update the values for
+        the current state of <string>D_OVERRIDE_COLOR</string> combo, and pass the override color. Check if <string>_modelRenderer</string>
+        exists and if it's actually valid, and return if it isn't. You don't want NREs spamming your console every frame. And only after 
+        this check update the combo and color value.
+    </p>
+    <pre><code class="language-csharp">
+protected override void OnUpdate()
+{
+    if ( !_modelRenderer.IsValid() || _modelRenderer == null )
+        return;
+	
+    // Get the SceneModel from ModelRenderer component
+    var sceneModel = _modelRenderer.SceneObject;
+		
+    // Now update the dynamic combo and current override color with values of this component's properties
+    sceneModel.Attributes.SetCombo( "D_OVERRIDE_COLOR", EnableOverride );
+    sceneModel.Attributes.Set( "MyOverrideColor", OverrideColor );
+	
+    base.OnUpdate();
+}
+    </code></pre>
+    <p>
+        Great! Now place a model on your scene that has material with your custom shader attached to it. Make sure it is actually 
+        Model Renderer, not skinned variant. Then add newly created component. Try clicking on "Enable Override" checkbox and see 
+        if anything happens. If you did it correctly, your material texture will be replaced with a solid color. :) 
+    </p>
+    <p>
+        <a href="https://sbox.game/dev/api/Sandbox.RenderAttributes/Set">RenderAttributes.Set()</a> supports a big range of data types 
+        that you can pass into a shader. If there's some type which structure fits HLSL data types, then it'll be likely supported by this method.
+        It accepts vectors, integers, textures, buffers and matrices. Some special types like <string>Color</string> will be automatically 
+        transformed into a vector-format, so in shader it'll be read as <string>float3</string> / <string>float4</string>. 
+    </p>
+    <p>
+        Keep in mind that you must be hyperaware of data types you're marking as an attribute in your shader code. If you, for example, 
+        accidentally pass <string>Vector3</string> from C# to your shader as a <string>float2</string>, there will be no warnings or errors. 
+        Shader will just read first two components and cull the 3rd one. If you see that your attribute data is rendering not as you expect 
+    </p>
+    <img src="/media/pt5_component.png">
+
+    <h3>Setting attributes through scene</h3>
+    <p>
+        If you duplicate your new GameObject with this color override component, and then try changing the color, you'll notice that it is applied 
+        just for the current model. Which is probably what you want. But sometimes you want certain data/options passed globally, so it can be read 
+        from every model that uses this shader. 
+    </p>
+    <p>
+        Scene's render attributes are public and you can set any values to it anytime, and shaders will always have access to this data. 
+        Just do <string>Scene.RenderAttributes</string> and then set any combo or values. It is extremely simple. Here's a snippet from 
+        <b>Blocks and Bullets</b> code, where we use these attributes to update the graphics quality for a water shader without having to access it's model directly.
+    </p>
+    <pre><code class="language-csharp">
+var quality = SettingsManager.Settings?.WaterReflectionQuality ?? WaterReflectionQuality.Low;
+if ( quality == WaterReflectionQuality.Disabled )
+{
+    Scene.RenderAttributes.Set( "D_REFLECTIONS", 0 );   // Do not render and sample reflection texture 
+    Scene.RenderAttributes.Set( "WaterIterations", 8 ); // Amount of for-loops in shader, affects the water waves detail
+    return;
+}
+    </code></pre>
+
+    <a class="dl" href="/shaders/Pt4_ShaderCombos.shader">
+    <div class="download">
+        <div class="icon">
+            <span class="material-symbols-sharp">file_open</span>
+        </div>
+        <div class="file">
+            <span>DOWNLOAD THE COMPLETE SHADER:</span>
+            <b>Pt5_RenderAttributes.shader</b>
+        </div>
+    </div>
+    </a>  
+</div>
