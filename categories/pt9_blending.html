@@ -256,6 +256,8 @@ mat = Material::lerp( mat, layer, ComputeBlendWeight( i.vVertexColor.r, g_flBlen
         At last, let's do another fun thing. Let's use world-space normal to determine what area must be covered by the second layer!
         To avoid even more shader combos piling up and increasing the compilation time, let's implement a simple checkbox variable instead.
     </p>
+
+    <h3>Simple Way</h3>
     <pre><code class="language-hlsl">
 bool g_bUseWorldSpaceNormals < UiType( CheckBox ); Default( 0 ); UiGroup( "Settings,30/Blend Options,30/31" ); >;
     </code></pre>
@@ -285,6 +287,8 @@ mat = Material::lerp( mat, layer, ComputeBlendWeight( g_bUseWorldSpaceNormals ? 
         how normals work, and what kind of data they represent. Don't forget, you can access all vector components using suffixes <string>RGBA</string>
         or <string>XYZW</string>, both will be valid, and probably XYZW makes more sense when working with normals. 
     </p>
+
+    <h3>Direction and Dot Product</h3>
     <p>
         Last, extra feature: instead of hardcoding this layer to blend only with the <b>Z up</b> of normals, let's allow artists 
         define normal direction themselves. Make a new float3 vector variable with range clamped in -1 to 1. 
