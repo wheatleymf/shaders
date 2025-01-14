@@ -9,6 +9,7 @@ let currentCategory;
 let loaderTarget = document.querySelector( ".loader" );
 
 const Header = document.title;
+const QuickNavigation = document.querySelector( ".headers" );
 
 function GetCaller( name )
 {
@@ -102,11 +103,18 @@ function LoaderError( reason, category, target, code )
     target.innerHTML += details;
 }
 
-function UpdateTitle( loadedPage )
+function ParseDOM( contents ) 
 {
     let parser = new DOMParser();
-    let doc = parser.parseFromString( loadedPage, "text/html" );
-    let PageName = doc.querySelector( ".description h1" ).textContent;
+    let doc = parser.parseFromString( contents, "text/html" );
+
+    return doc;
+}
+
+function UpdateTitle( loadedPage )
+{
+    let parsedData = ParseDOM( loadedPage );
+    let PageName = parsedData.querySelector( ".description h1" ).textContent;
 
     return `${ PageName } :: ${ Header }`;
 }
@@ -117,6 +125,64 @@ function ResetScroll()
         top: 0,
         behavior: 'smooth'
     } );
+}
+
+let CurrentHeading; 
+
+function UpdateNavigator( page )
+{
+    // Reset the contents of a quick navigation
+    QuickNavigation.innerHTML = '';
+
+    let headings = page.querySelectorAll( 'h2,h3' );
+    
+    headings.forEach( element => {
+        // Populate the navigator with all found headings and subheadings
+        let subheader = document.createElement( 'span' );
+        subheader.className = element.tagName == "H2" ? "header" : "subheader";
+        subheader.dataset.targetId = subheader.id;
+        subheader.innerHTML = element.textContent;
+
+        // Hook up an event that moves reader to selected heading 
+        subheader.onclick = function() {
+            window.scrollTo( {
+                top: element.getBoundingClientRect().top + window.scrollY - 50,
+                behavior: 'smooth'
+            });
+        }
+
+        QuickNavigation.appendChild( subheader );
+    });
+
+    let navItems = document.querySelectorAll(".headers span");
+
+    // Implement intersection observer so we can nicely keep track of which section user is currently reading.
+    // There are a few issues when user scrolls between two sections or when more than 1 target is in viewport, 
+    // but overall this is better than nothing. 
+    const observer = new IntersectionObserver( 
+        (entries) => {
+
+            entries.forEach( (entry) => {
+                const navItem = [...navItems].find( 
+                    (item) => item.textContent == entry.target.innerHTML
+                );
+
+                if (entry.isIntersecting) {
+                    navItem?.classList.add( 'current' );
+                    CurrentHeading?.classList.remove( 'current' );
+
+                    CurrentHeading = navItem;
+                }
+            });
+        }, 
+        {
+            root: null,
+            threshold: 0.5
+        }
+    );
+
+    // Hook up observer to all new created headings 
+    headings.forEach( (heading) => observer.observe( heading ) );
 }
 
 async function DisplayCategory( categoryName )
@@ -164,6 +230,9 @@ async function DisplayCategory( categoryName )
 
     // Set the page scroll at the top after opening a new page.
     ResetScroll();
+
+    // Update quick navigation window depending on what given article contains
+    UpdateNavigator( target );
 
     // Make sure to run code highlighter on recevied page before rendering it
     hljs.highlightAll( );
