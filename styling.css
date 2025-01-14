@@ -422,6 +422,49 @@ a.dl {
     font-size: 36px;
 }
 
+/* HEADERS */
+/* That little thing that displays all headers and sub-headers for quick navigation across the article */ 
+
+@media ( max-width: 1800px ) {
+    .headers {
+        display: none;
+    }
+}
+
+.headers {
+    position: fixed;
+    z-index: 999; /* ugh */
+    right: 50px;
+    max-width: 350px;
+    top: 80px;
+    padding: 10 25px;
+    
+}
+    .headers .current {
+        color: var(--pal-sf);
+        margin: 15 0;
+    }
+    .headers span {
+        display: block;
+        font-weight: bold;
+        color: var( --pal-text );
+        margin: 5 0;
+        transition: all .12s ease-in-out;
+        text-overflow: clip;
+    }
+    .headers span:hover {
+        cursor: pointer;
+        color: var( --pal-sf );
+    }
+        .headers .header {
+            text-transform: uppercase;
+            margin: 10 0;
+        }
+        .headers .subheader {
+            font-weight: 500;
+            margin-left: 38px;
+        }
+
 /* CONTENTS ITSELF */
 
 .contents .Article {
