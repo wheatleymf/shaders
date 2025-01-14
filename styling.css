@@ -436,6 +436,7 @@ a.dl {
     z-index: 999; /* ugh */
     right: 50px;
     max-width: 350px;
+    width: 350px;
     top: 80px;
     padding: 10 25px;
     
