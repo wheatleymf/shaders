@@ -338,6 +338,7 @@ body {
 .contents video {
     width: 100%;
     border-radius: 2px;
+    margin: 20 0;
 }
 
 /* DOWNLOAD SECTION */
