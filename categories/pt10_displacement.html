@@ -1,0 +1,248 @@
+<div class="ArticleHeader">
+    <div class="icon">
+        <span class="material-symbols-sharp">text_select_move_forward_character</span>
+    </div>
+    <div class="description">
+        <span>shader fundamentals</span>
+        <h1>Vertex Displacement</h1>
+    </div>
+</div>
+<div class="Article">
+    <p>
+        <i>
+            <b>IN THIS ARTICLE: </b> displacing vertcies and applying them into projection space, adding wind effects 
+            using procedural noise, adding PSX-like vertex snapping, experimenting with waves. 
+        </i>
+    </p>
+    <hr>
+    <p>
+        Shaders allow manipulating vertices of your mesh in many ways. You can apply any sorts of math to vertex positions to 
+        manipulate model's shape. Wind displacement, waves, many other things. Today I'll show some of the examples of how you can 
+        move vertices around.  
+    </p>
+
+    <h2>Wind Displacement</h2>
+    <p>
+        First example will be <b>wind displacement</b>. This is an incredibly simplified simulation of how wind can displace the model, 
+        but it should give a base idea how this technique generally works. To generate this sort of displacement, we'll need a 2D data 
+        that represents the direction of vertices swaying around. You'll also need to use vertex colors to mark areas that should be 
+        affected by wind. 
+    </p>
+
+    <h3>Setting up Vertex Colors</h3>
+    <p>
+        Most foliage shaders, like <a href="https://wiki.facepunch.com/sbox/Foliage_Shader">built-in one</a>, uses vertex colors 
+        to mark up mesh areas that must be affected by various types of wind sway. We'll do same thing in this case. Open Blender
+        and your mesh, open vertex paint tools, set everything to black (shortcut <string>Ctrl+X</string>) and then paint with full red 
+        color over the vertices that you want to make sway around. 
+    </p>
+    <img src="/media/pt10_vertexpaint.png">
+    <p>
+        Then, as it was done in previous parts, export this mesh with vertex colors set in <b>Linear</b> color space and <b>Prioritize
+        Current Color</b>. 
+    </p>
+    <p>
+        Once you're done, import this model into s&box and set up the model file for it using ModelDoc. Link the material that uses your 
+        custom shader. 
+    </p>
+    
+    <h3>Effect Outline</h3>
+    <p>
+        You'll need some sort of data to represent the displacement, we can't just get these numbers out of nowhere. There are many ways to do it: 
+        you can manually make a noise texture, or procedurally generate this noise yourself. We'll go with the second option, because it will give us 
+        an opportunity to work with the built-in library of procedural data: noises, shapes and patterns. 
+    </p>
+    <p>
+        This library can be imported by adding <string>#include "procedural.hlsl"</string>. Since vertex displacement will be done in 
+        vertex shader, this is where you should add this. 
+    </p>
+    <p>
+        <b>Outline:</b> You'll be using <string>Simplex2D</string> noise, which will be enough for this effect. Noise is generated based on the input value:
+        in this case, it expects a 2D vector as an input. It could be an UV, but since this is done with vertices, you can just pass XY components 
+        of vertices world-space position, stored in <string>o.vPositionWs</string>. We'll also multiply it by a seperate variable that will 
+        define how strong this vertex displacement will be. 
+    </p>
+    <p>
+        By default, noise isn't dynamic. To give it a moving effect, (which is what makes vertex displacement look like wind swaying around)
+        it needs to be offset by a certain value - and time constant <string>g_flTime</string> is perfect for things like this. Just add it 
+        to the noise value. To allow artists define how fast this "swaying" animation is, you can multiply time value by other number. 
+    </p>
+    <p>
+        Mapping this noise onto world-space coordinates without scaling will make it appear too small, probably.
+        Just like with UVs for textures,  you can just multiply coordinates to make it appear larger for this Simplex2D noise. 
+    </p>
+
+    <h3>Vertex Shader Variables</h3>
+    <p>
+        Now, when the concept is outlined, let's code it. Start with adding variables for noise mapping scale, sway animation speed,
+        and displacement intensity. This is being added in <string>VS</string> block, outside of <string>MainVs</string>.
+    </p>
+    <pre><code class="language-hlsl">
+#include "common/vertex.hlsl"
+#include "procedural.hlsl"
+
+float g_flSwaySpeed < UiType( Slider ); Range( 0, 3 ); Default( 1 ); UiGroup("Swaying Effect,1/Properties,1/10"); >;
+float g_flNoiseScale < UiType( Slider ); Range( 0.1, 10 ); Default( 1 ); UiGroup( "Swaying Effect,1/Properties,1/20"); >;
+float g_flDisplacementStrength < UiType( Slider ); Range( 1, 10 ); Default( 1 ); UiGroup( "Swaying Effect,1/Properties,1/30"); >;
+    </code></pre>
+    <p>
+        This will be enough to give artists enough control over how noise affects the vertices. Let's go into <string>MainVs</string>
+        now and start doing more fun things.
+    </p>
+
+    <h3>World-space Vertex Position</h3>
+    <p>
+        First, make a new <string>float2</string> and copy XY components from <string>o.vPositionWs</string>. This will grab 
+        world-space position of given vertex on X and Y axis. For wind-like displacement, using XY axis should be alright. 
+    </p>
+    <pre><code class="language-hlsl">
+float2 vPosWs = o.vPositionWs.xy / (g_flNoiseScale * 50);
+    </code></pre>
+    <p>
+        Dividing coordinates by <string>g_flNoiseScale</string> will increase their scale. This should increase the scale just enough 
+        to make noise displacement appear pretty smooth. This variable is also multiplied by 50 to increase the "step" in scale.
+        If you try removing this value and keep coords unchanged, you'll see that vertices are being displacement with a noticeable 
+        grainy visuals, which may not fit your idea.  
+    </p>
+
+    <h3>Runtime Noise Value</h3>
+    <p>
+        Now, let's generate the noise value using the procedural noise library and <b>Simplex2D</b>. 
+    </p>
+    <pre><code class="language-hlsl">
+float flNoise = Simplex2D( vPosWs + (g_flTime * g_flSwaySpeed) ) * g_flDisplacementStrength;
+    </code></pre>
+    <p>
+        Simplex2D generates a noise using the coordinates from <string>vPosWs</string> vector, this is where you also add 
+        time constant (multipled by speed value) to coords so it has an animated offset. The final noise is then multipled by intensity 
+        variable to adjust how much it will displace the vertices.
+    </p>
+
+    <h3>Displacing Vertices</h3>
+    <p>
+        Now, update the original XY components of <string>o.vPositionWs</string> with the final noise value. Notice that it's being 
+        multipled by <string>o.vVertexColor.r</string> - if given vertex has almost nothing painted on red component, which is close to 0,
+        this will heavily reduce the intensity of displacement. So essentially, this prevents vertices from being displaced if you haven't 
+        painted those vertices with red color on the mesh.  
+    </p>
+    <pre><code class="language-hlsl">
+o.vPositionWs.xy += flNoise * o.vVertexColor.r;
+    </code></pre>
+    <p>
+        You're almost done, but you also need to update <string>o.vPositionPs</string>, which is vertex position in <b>projection space</b>.
+        It currently contains outdated values generated by <string>ProcessVertex</string> function, so you need to convert your modified world-space 
+        coords into projection space yourself. This is easy: 
+    </p>
+    <pre><code class="language-hlsl">
+o.vPositionPs = Position3WsToPs( o.vPositionWs.xyz );
+    </code></pre>
+
+    <p>
+        Now set up the material and see how your vertices are being displaced! 
+    </p>
+    <video controls autoplay loop>
+        <source src="/media/pt10_swaying.mp4" type="video/mp4">
+    </video>
+
+    <a class="dl" href="/shaders/Pt10_WindDisplacement.shader">
+        <div class="download">
+            <div class="icon">
+                <span class="material-symbols-sharp">file_open</span>
+            </div>
+            <div class="file">
+                <span>DOWNLOAD THE COMPLETE SHADER:</span>
+                <b>Pt10_WindDisplacement.shader</b>
+            </div>
+        </div>
+    </a> 
+
+    <h2>Vertex Snapping</h2>
+    <p>
+        Let's do some more specific effects! This one will replicate the effect from PSX games where low precision values resulted 
+        in wobbly vertices on meshes. This has been done many times by many devs already, including <b>My Summer Cottage</b>. 
+    </p>
+    <p>
+        This time, no variables required: it's all just bunch of math. 
+    </p>
+    <pre><code class="language-hlsl">
+// Vertex Snapping by Small Fish (and ceitine)
+// (c) 2022 ?..
+float3 vPositionWs = o.vPositionWs.xyz;
+float dist = distance(g_vCameraPositionWs, vPositionWs);
+
+float scale = RemapValClamped( dist, 1000, 5000, 240, 800 );
+float4 vertex = Position3WsToPs( vPositionWs.xyz );
+vertex.xyz = vertex.xyz / vertex.w;
+vertex.xy = floor( scale * vertex.xy ) / scale;
+vertex.xyz *= vertex.w;
+
+o.vPositionPs = vertex;
+    </code></pre>
+    <p>
+        As you can see, all other global variables like camera position are still accessible! To calculate the distance between 
+        vertex and camera positions, we're using built-in HLSL function <a href="https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-distance">distance()</a>.
+        It will return the distance between these two vectors.   
+    </p>
+    <p>
+        Then, we're using <b>RemapValClamped()</b>. It will remap the distance in a certain range with new minimum and maximum values.
+        This is a built-in function from Source 2, which remaps the value in the range [A-B] to [C-D]. The implementation of this function looks something like this:
+    </p>
+    <pre><code class="language-hlsl">
+// Remap a value in the range [A,B] to [C,D]. Values < A map to C, and > B maps to D.
+float RemapValClamped( float flOldVal, float flOldMin, float flOldMax, float flNewMin, float flNewMax )
+{
+    // Put the old val into 0-1 range based on the old min/max
+    float flValNormalized = saturate( ( flOldVal - flOldMin ) / ( flOldMax - flOldMin ) );
+
+    // Map 0-1 range into new min/max
+    return ( flValNormalized * ( flNewMax - flNewMin ) ) + flNewMin;
+}
+    </code></pre>
+    <p>
+        Also, instead of adjusting world-space coordinates first, you can just directly edit projection-space vertices if you'd like. 
+        This is also possible! Essentially, we're setting up vertex snapping to work on a certain distance, so it doesn't become too 
+        annoyingly distorted at longer distances, which was a problem during early development of <b>My Summer Cottage</b>: props would 
+        become stupidly wobbly in buildings. 
+    </p>   
+
+    <a class="dl" href="/shaders/Pt10_VertexSnapping.shader">
+        <div class="download">
+            <div class="icon">
+                <span class="material-symbols-sharp">file_open</span>
+            </div>
+            <div class="file">
+                <span>DOWNLOAD THE COMPLETE SHADER:</span>
+                <b>Pt10_VertexSnapping.shader</b>
+            </div>
+        </div>
+    </a> 
+
+    <h2>Sinusoid Waves</h2>
+    <p>
+        Simplest thing is this. It's probably weird that I am putting the simplest example at the very bottom of this article, huh. 
+        Use the sin wave and XY components of vertex coords, and use it to distort vertices. 
+    </p>
+    <pre><code class="language-hlsl">
+o.vPositionWs.z += sin( (o.vPositionWs.xy / 50) + (g_flTime * 8) ) * 10;
+o.vPositionPs = Position3WsToPs( o.vPositionWs.xyz );
+    </code></pre>
+    <p>
+        This will generate a very simple sin wave that distorts only the Z component of mesh vertices, so that could work 
+        for water waves (although that would be a comically awful water sim) and maybe some other effects. 
+    </p>
+    <video controls autoplay loop>
+        <source src="/media/Pt10_WaveDisplacement.mp4" type="video/mp4">
+    </video>
+
+    <a class="dl" href="/shaders/Pt10_WaveDisplacement.shader">
+        <div class="download">
+            <div class="icon">
+                <span class="material-symbols-sharp">file_open</span>
+            </div>
+            <div class="file">
+                <span>DOWNLOAD THE COMPLETE SHADER:</span>
+                <b>Pt10_WaveDisplacement.shader</b>
+            </div>
+        </div>
+    </a> 
+</div>
