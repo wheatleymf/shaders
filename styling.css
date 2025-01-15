@@ -334,6 +334,12 @@ body {
     margin: 0 3;
 }
 
+
+.contents video {
+    width: 100%;
+    border-radius: 2px;
+}
+
 /* DOWNLOAD SECTION */
 
 a.dl {
