@@ -130,6 +130,10 @@ FEATURES
                 compile without this mode.
             </li>
             <li>
+                <string>Depth()</string> will make shader write to depth. This is necessary for shadow rendering and few other render 
+                things like ambient occlusion, and anything else what relies on depth map. 
+            </li>
+            <li>
                 <string>ToolsVis( S_MODE_TOOLS_VIS )</string> is <b>DEPRECATED</b>, but you may see it in some older shader files. As of now, 
                 it's been deprecated and you don't have to include it anymore. I'll mentioned it here, just in case. 
             </li>
@@ -139,8 +143,14 @@ FEATURES
 MODES
 {
 	VrForward();
+    Depth();
 }            
     </code></pre>
+    <warning>
+        <string>Depth()</string> will be replaced with <string>DepthNormal()</string> in the near future. I don't know if old shaders
+        will continue working, but you'll definitely need to replace it with a new method when it's out. It should bring support for G-buffer,
+        which is a nice addition. 
+    </warning>
 
     <h3>COMMON block</h3>
     <p>
