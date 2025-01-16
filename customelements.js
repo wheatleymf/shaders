@@ -52,4 +52,40 @@ class DownloadElement extends HTMLElement {
     }
 }
 
+class ArticleHeader extends HTMLElement {
+    constructor() {
+        super();
+
+        const name = this.getAttribute("name");
+        const icon = this.getAttribute("icon");
+        const category = this.getAttribute("category");
+
+        let wrapper = document.createElement("div");
+        wrapper.classList.add("ArticleHeader");
+
+        let icondiv = document.createElement("div");
+        icondiv.classList.add("icon");
+        let iconspan = document.createElement("span");
+        iconspan.classList.add("material-symbols-sharp");
+
+        let datadiv = document.createElement("div")
+        datadiv.classList.add("description");
+        let cat = document.createElement("span");
+        let header = document.createElement("h1");
+
+        iconspan.textContent = icon;
+        cat.textContent = category;
+        header.textContent = name;
+
+        datadiv.appendChild( cat );
+        datadiv.appendChild( header );
+        icondiv.appendChild( iconspan );
+        wrapper.appendChild( icondiv );
+        wrapper.appendChild( datadiv );
+
+        this.appendChild( wrapper );
+    }
+}
+
 customElements.define("download-file", DownloadElement);
+customElements.define("article-header", ArticleHeader);
