@@ -1,0 +1,273 @@
+<article-header
+    name="Basic Postprocessing"
+    icon="texture"
+    category="postprocessing"    
+></article-header>
+<div class="Article">
+    <p>
+        Let me be very honest, this does not seem to be necessary covering this stuff because <a href="https://docs.facepunch.com/s/sbox-dev/doc/creating-your-own-obYOd2iXXU">s&box docs</a> 
+        already covered everything you need to know about setting up post-processing shaders. But since this page is focused on providing 
+        beginner-friendly material, I'll try to explain as much as possible, and feature a few examples of a post-processing shader.
+    </p>
+    <h2>What is this?</h2>
+    <p>
+        Post-processing shaders basically allow creating special screen effects that are not possible with a simple surface shader
+        (this is what is used on models). Things like vignette, hurt effects, chromatic abberation, and many other effects you've seen 
+        in other games are usually made with a post-processing shader. 
+    </p>
+    <p>
+        Just like with other shaders, you still can access things like depth buffer, color buffer, use built-in HLSL files and do 
+        any sorts of math that you can do in any other type of shader.
+    </p>
+    <p>
+        Post-processing shaders are set up almost the same way as a surface shader. It still needs vertex and pixel shaders to work properly, but it doesn't need features 
+        and requires setting up your own vertex/pixel structs. They don't need a dedicated material, such shaders are loaded via C# 
+        at runtime. And yeah, you'll need to set up a custom component for them, and attach them to a camera you need.  
+    </p>
+
+    <h2>Creating a Shader</h2>
+    <p>
+        Post-processing shaders require custom C# component to make them work. Let's start with implementing the shader first,
+        then we'll make a new C# component.  
+    </p>
+    <p>
+        Make a new shader file. Just like we did with the previous course, shader fundamentals, instead of creating a new template shader,
+        let's build it ourselves and see what everything in it means. Add a <string>MODES</string> block and put <string>VrForward()</string> in it.
+    </p>
+    <pre><code class="languagehlsl">
+MODES
+{
+    VrForward();
+}
+    </code></pre>
+    <p>
+        We're intentionally leaving out <string>FEATURES</string> from here because it is not necessary for this shader. It won't contain 
+        any static combos because it is won't be used as a shader for materials. 
+    </p>
+    <p>
+        Now, let's make a custom <string>VertexInput</string>. You'll only need two properties, object-space position and 
+        texture coordinates. 
+    </p>
+    <pre><code class="language-hlsl">
+struct VertexInput
+{
+    float3 vPositionOs : POSITION;
+    float2 vTexCoord : TEXCOORD0;
+};
+    </code></pre>
+
+    <h3>Structs and Semantics</h3>
+    <p>
+        What is <string>: POSITION</string> and <string>: TEXCOORD0</string>? Those are <a href="https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-semantics">semantics</a>. This is a string 
+        that basically tells what's the intended use of given property. They're required for all shader variables that are passed between 
+        multiple stages. If I'm understanding it correctly, these two semantic help user & compiler to understand what's the purpose 
+        of these variables when they're being transfered to different shader stage, like from vertex -> fragment shader.
+    </p>
+    <p>
+        Okay, now let's make a <string>PixelInput</string> struct:
+    </p>
+    <pre><code class="language-hlsl">
+struct PixelInput
+{
+    float2 vTexCoord : TEXCOORD0;
+
+	#if ( PROGRAM == VFX_PROGRAM_VS )
+		float4 vPositionPs : SV_Position;
+	#endif
+
+	#if ( ( PROGRAM == VFX_PROGRAM_PS ) )
+		float4 vPositionSs : SV_Position;
+	#endif
+};
+    </code></pre>
+    <p>
+        This <string>#if</string> block is a compiler-specific thing that works somewhat like shader combos. This condition 
+        allows checking the current shader stage that is being executed, where <string>VFX_PROGRAM_VS</string> means "vertex shader",
+        and <string>VFX_PROGRAM_PS</string> is a fragment shader.
+    </p>  
+    <p>
+        When shader will execute vertex shader, compiler will return a <string>vPositionPs</string> variable, while during fragment shader 
+        this variable in PixelInput will be <string>vPositionSs</string> (screen-space pixel position). 
+    </p>
+    <p>
+        Also, there's another semantic, <string>SV_Position</string>. Unlike semantics above, this one does slightly more things than 
+        others. Think of it like it's binding the data between <b>vertex shader</b> to <b>pixel shader</b> in certain format 
+        that allows doing all magic GPU bullshit for certain data between different shader stages. Vertex 
+        shader returns <string>vPositionPs</string> which is sent to pixel shader for rasterizing, and when it receives this variable, it basically 
+        turns into <string>vPositionSs</string>, a variable with position value in 2D screen-space coordinates. 
+    </p>
+    <info>
+        Please if you're more familiar with this shit, let me know if I understood this concept correctly or if it's complete 
+        BS. I did my research but I am not entirely sure if I'm getting it right. 
+    </info>
+    
+    <h3>Vertex Shader</h3>
+    <p>
+        You won't need to do much in vertex shader, you don't have to use helper functions like <string>ProcessVertex</string> here. 
+        Vertex shader must return data with a type of <string>PixelInput</string>. 
+    </p>
+    <pre><code class="language-hlsl">
+VS
+{
+    PixelInput MainVs( VertexInput i )
+    {
+        PixelInput o;
+        
+        o.vPositionPs = float4( i.vPositionOs.xy, 0.0f, 1.0f );
+        o.vTexCoord = i.vTexCoord;
+        return o;
+    }
+}
+    </code></pre>
+    <p>
+        This code creates a new variable with <string>PixelInput</string> struct as a type, then you're grabbing XY components from 
+        object-space position of a vertex and put it into a float4 vector. I am not sure what is stored in Z component, but W component 
+        affects the overall scale of the viewport. Lower values than 1.0 will make post-processing viewport larger, while greater
+        values will make post-processing frame smaller.
+    </p>
+    <p>
+        Copy texture coordinates as is, and then return this variable. 
+    </p>
+
+    <h3>Pixel Shader</h3>
+    <p>
+        This is where you'll do all of your effects. Just like with surface shaders, your code is being executed for every pixel 
+        on screen. Let's outline the goal for your first post-processing shader: let's make an effect that allows adjusting screen 
+        brightness using slider in your custom C# component.  
+    </p>
+    <p>
+        Create a <string>PS</string> block. Define a new SamplerState (you can't refer built-in samples like <string>g_sAniso</string>
+        without importing all that stuff we put into surface shaders). To create a new <a href="https://docs.facepunch.com/s/sbox-dev/doc/sampler-states-LlJc7ymJkq">SamplerState</a>,
+        you'll need to <i>at least</i> define the filter mode. In this case, <b>Filter( Linear );</b> should be enough. 
+    </p>
+    <pre><code class="language-hlsl">
+PS
+{
+    SamplerState s < Filter( Linear ); >;
+    
+    // ...
+    float4 MainPs( PixelInput i ) : SV_Target0
+    {
+        // ...
+    }
+}
+    </code></pre>
+    <p>
+        Now we need to grab the screen frame so you can have something to work with. Post-processing shaders have no way to fetch 
+        current viewport frame by default, this must be implemented by yourself. Luckily, this is very easy. Add a new Texture2D 
+        variable, and using annotations, add an attribute with any name you'd like. Make sure to enable sRGB color space.
+    </p>
+    <pre><code class="language-hlsl">
+Texture2D g_tColorBuffer < Attribute( "ColorBuffer" ); SrgbRead( true ); >;
+    </code></pre>
+    <p>
+        You can give it any name, either <b>ColorBuffer</b> or anything else. Later on, we'll grab the screen frame from C# and pass 
+        it as an attribute data, assigned to a name you choose in Attribute. Enabling <string>SrgbRead</string> is important because 
+        things like texture's albedo or screen frame buffer are in sRGB color space. Disabling this feature will make colors look off. 
+    </p>
+    <p>
+        Now add another variable with Attribute annotation, it will be a float variable that affects how bright/dark your screen 
+        gets using this post-processing effect. In C#, you will create a slider property that will directly adjust the value in your 
+        shader. 
+    </p>
+    <pre><code class="language-hlsl">
+// Default( 1 ) will make the variable fallback to value of '1' if there's no input
+// from C# to the attribute with this name.
+float g_flScreenBrightness < Attribute( "ScreenBrightness" ); Default( 1 ); >;
+    </code></pre>
+    <p>
+        Inside of <string>MainPs</string> block, sample the color buffer. It'll contain only RGB channels, so store it in a 
+        <string>float3</string> vector. Then, multiply it by <string>g_flScreenBrightness</string>. At last, return this buffer:
+        but since final pixel is expected to be a <string>float4</string>, put it in <string>float4( ... )</string> first.
+    </p>
+    <pre><code class="language-hlsl">
+float4 MainPs( PixelInput i ) : SV_Target0
+{
+    float3 buffer = g_tColorBuffer.Sample( s, i.vTexCoord ).rgb * g_flScreenBrightness;
+
+    return float4( buffer, 1 );
+}
+    </code></pre>
+    <p>
+        This shader should be complete now. Now let's go and create new C# component. 
+    </p>
+
+    <h2>Post-Processing Component</h2>
+    <p>
+        Create a new C# component anywhere you'd like. Give it any name you want. I'll be honest, but doing this step by step 
+        would make the article stupidly long, so here's the entire code snippet. I'll explain important stuff down below.
+    </p>
+    <pre><code class="language-csharp">
+namespace Sandbox;
+
+[Title( "My Post Processing" )]
+[Category( "Post Processing" )]
+[Icon( "grain" )]
+public sealed class MyPostProcessing : PostProcess, Component.ExecuteInEditor
+{
+	[Property] [Range( 0, 3 )] public float Brightness { get; set; } = 1.0f;
+
+	private IDisposable _renderHook;
+
+	protected override void OnEnabled()
+	{
+		_renderHook = Camera.AddHookBeforeOverlay( "My Post Processing", 1000, RenderEffect );
+	}
+
+	protected override void OnDisabled()
+	{
+		_renderHook?.Dispose();
+		_renderHook = null;
+	}
+
+	RenderAttributes attributes = new RenderAttributes();
+
+	public void RenderEffect( SceneCamera camera )
+	{
+		if ( !camera.EnablePostProcessing )
+			return;
+
+		attributes.Set( "ScreenBrightness", Brightness );
+		Graphics.GrabFrameTexture( "ColorBuffer", attributes );
+		Graphics.Blit( Material.FromShader( "shaders/postprocessing/post_example.shader" ), attributes );
+	}
+}
+    </code></pre>
+    <p>
+        First, in this code I am creating a new property with range set to <b>0-3</b>. 0 will make entire screen go black, while 
+        3 will make things look very bright. You can change this to any other range, just keep in mind that negative values usually 
+        make colors in HLSL appear very glitchy.
+    </p>
+    <p>
+        <string>_renderHook</string> allows us adding new post-processing effect in the renderer. It gets automatically disposed 
+        if this component gets turned off. 
+    </p>
+    <p>
+        Then we need to create <string>RenderAttributes</string> object, since this is what we're using to pass any custom data into 
+        shaders. 
+    </p>
+    <p>
+        First, we assign the value from your <b>Brightness</b> property to render attributes with a name assigned to <b>ScreenBrightness</b>,
+        since this is how your shader variable <b>g_flScreenBrightness</b> is labelled in the attribute annotation. Second, you need to 
+        grab the current frame and pass it into the shader. <string>GrabFrameTexture</string> will "capture" the current frame and pass it into 
+        given render attributes object. 
+    </p>
+    <p>
+        At last, we're using <string>Graphics.Blit</string> which will draw the quad using the post-processing shader you've linked. 
+        This method works only with shaders that have correctly set up screen-space coordinates (which is what we did!). Put the path 
+        to your custom shader, and include your RenderAttributes object. It will keep executing the shader, pass relevant data through 
+        render attributes, and then return whatever it renders.  
+    </p>
+    <img src="/media/postprocessing_basic.png">
+    <p>
+        Now attach your new component to main camera on your scene, and try adjusting the brightness! Very nice. 
+    </p>
+    <p>
+        In the next article we'll try doing some more specific things, like screen-space fog, contrast and saturation filters, 
+        and probably something more. 
+    </p>
+
+    <download-file url="/shaders/Postprocessing_Basic.shader" title="Download the complete shader:" icon="file_open"></download-file>
+    <download-file url="/assets/ExamplePostprocessing.cs" title="Download the example component:" icon="frame_source"></download-file>
+    
+</div>
