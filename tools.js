@@ -129,8 +129,11 @@ function ParseDOM( contents )
 function UpdateTitle( loadedPage )
 {
     let parsedData = ParseDOM( loadedPage );
-    let PageName = parsedData.querySelector( ".description h1" ).textContent;
+    let PageName = parsedData.querySelector( "article-header" )?.getAttribute("name");
 
+    if ( PageName == undefined)
+        console.warn("Couldn't read the article name! Please make sure that article is using <article-header> tag.");
+    
     return `${ PageName } :: ${ Header }`;
 }
 
