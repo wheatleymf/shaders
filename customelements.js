@@ -6,15 +6,6 @@ class DownloadElement extends HTMLElement {
         const title = this.getAttribute("title");
         const icon = this.getAttribute("icon");
 
-        console.log("thats bullshit man");
-        
-        try {
-            throw new Error("AAAAA");
-        } catch (error)
-        {
-            console.log( error.stack );
-        }
-
         const anchor = document.createElement("a");
         anchor.setAttribute("part", "dl");
         anchor.classList.add("dl");
