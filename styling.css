@@ -36,6 +36,8 @@ body {
     background: var(--pal-bg);
     color: white;
     font-weight: 300;
+    display: flex;
+    flex-flow: column;
 }
 
 .navigation p {
@@ -66,6 +68,10 @@ body {
     line-height: 36px;
     font-weight: 600;
 }
+    .navigation a:last-child
+    {
+        margin-bottom: 32px;
+    }
 .navigation a span {
     margin-right: 16px;
 }
@@ -119,9 +125,9 @@ body {
 
 /* Not real cats unfortunately */
 .navigation .cats {
-    /* overflow-y: scroll; */
+    overflow-y: scroll;
 
-    scrollbar-color: var(--pal-header) #60729852;
+    scrollbar-color: var(--pal-text) #00000000;
     scrollbar-width: thin;
     direction: rtl;
 }
