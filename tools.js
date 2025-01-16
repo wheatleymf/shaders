@@ -11,6 +11,21 @@ let loaderTarget = document.querySelector( ".loader" );
 const Header = document.title;
 const QuickNavigation = document.querySelector( ".headers" );
 
+function GetFilenameFromURL( url )
+{
+    const baseDomainURL = window.location.protocol + "//" + window.location.hostname;
+    url = baseDomainURL + url;
+
+    try {
+        let parsedURL = new URL( url );
+        return parsedURL.pathname.split( '/' ).pop();
+    } catch ( error )
+    {
+        console.error("[DOWNLOAD TAG] Couldn't parse the URL: ", error, url); 
+        return null;
+    }
+}
+
 function GetCaller( name )
 {
     return document.querySelector('[category=' + name + ']');
@@ -222,8 +237,8 @@ async function DisplayCategory( categoryName )
         .then( text => newPage = text);
 
     // Update target area of the main page with downloaded contents
-    target != undefined ? target.innerHTML = newPage : console.error("Missing target element for new content!");
-    target.innerHTML += `<div class='meta'>last article update: ${lastModified.toLocaleString()}</div>`;
+    let meta = `<div class='meta'>last article update: ${lastModified.toLocaleString()}</div>`;
+    target != undefined ? target.innerHTML = newPage + meta : console.error("Missing target element for new content!");
     
     // Update the title page.. this is a very hacky way because it's basically an afterthought, this should be much better. 
     document.title = UpdateTitle( newPage );
