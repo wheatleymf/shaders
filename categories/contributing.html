@@ -1,0 +1,137 @@
+<div class="ArticleHeader">
+    <div class="icon">
+        <span class="material-symbols-sharp">shadow_add</span>
+    </div>
+    <div class="description">
+        <span>local website stuff</span>
+        <h1>Contributing</h1>
+    </div>
+</div>
+<div class="Article">
+    <p>
+        If you'd like to contribute and submit your own article, (or if you'd like to edit any existing ones) you will have 
+        to deal with abysmally dogshit backend that I've made for the website. This page will show the workflow when adding new pages. 
+        I am really sorry that everything is glued with a ducttape like that, in the future I hope to gradually build something better.
+    </p>
+    
+    <h2>Adding Pages</h2>
+    <p>
+        I am very sorry that this works so bad. Maybe in the future it'll be properly automated. 
+    </p>
+    <h3>Create a New HTML Page</h3>
+    <p>
+        First, create a new <string>.html</string> file in <b>/categories</b> directory. Give it any name you'd like. This file name 
+        will be later used to be referenced in the left bar navigation list. 
+    </p>
+    <p>
+        Inside of it, add the following code. This will create the layout for the page heading, that includes current category,
+        article name and article icon. To set the icon, pick anything you want from <a href="https://fonts.google.com/icons">Google Fonts</a> and 
+        copy the icon's name.
+    </p>
+    <pre><code class="language-html">
+&lt;div class=&quot;ArticleHeader&quot;&gt; 
+    &lt;div class=&quot;icon&quot;&gt;
+        &lt;span class=&quot;material-symbols-sharp&quot;&gt;insert_icon_name_here&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;description&quot;&gt;
+        &lt;span&gt;category name&lt;/span&gt;
+        &lt;h1&gt;Article name!&lt;/h1&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+    </code></pre>
+    <p>
+        Then, create a new <string>div</string> element with a class <string>Article</string>. It just makes sure that all your text (and other content)
+        is properly aligned with the layout design. This is where you will write your entire article.
+    </p>
+
+    <h3>Adding into Navigation</h3>
+    <p>
+        You have to manually insert this article into the navigation. It is located in <string>index.html</string>. Pick an appropriate category, and insert following code:
+    </p>
+    <pre><code class="language-html">
+&lt;a category=&quot;YOUR_ARTICLE_HTML_NAME&quot; onclick=&quot;DisplayCategory(&#39;YOUR_ARTICLE_HTML_NAME&#39;)&quot;&gt; 
+    &lt;span class=&quot;material-symbols-sharp&quot;&gt;INSERT_ICON_NAME_HERE&lt;/span&gt; Article's name 
+&lt;/a&gt;
+    </code></pre>
+    <info>
+        If you're creating a new category, you have to insert it in the list as well. If you have just one article to submit, it's probably 
+        not worth dedicating a new category for it yet. This will be figured out in the pull request. 
+    </info>
+    <p>
+        Most important thing here is making sure that it refers the correct HTML page name in <string>YOUR_ARTICLE_HTML_NAME</string>.
+        If you do something wrong, this page will not load properly. 
+    </p>
+
+    <h2>Page Markdown</h2>
+    <p>
+        For the most part, all articles are being edited as usual HTML pages. For links you're using <string>a</string> tag, 
+        for images <string>img</string>, etc... But there are also few special tags with custom styling. 
+    </p>
+    <p>
+        All paragraphs are split between <string>P</string> tags. Most special tags require to be placed outside of these paragraphs. 
+    </p>
+    <h3>Warning and Info blocks</h3>
+    <p>
+        If you want to add a fancy, noticeable warning or note in your article, you can use tags <string>warning</string> and <string>info</string>.
+        They're not inline, so put them outside of paragraph sections. This is how they will look like:
+    </p>
+    <warning>
+        This is a warning! You may tell here about something really-really important, like incoming API changes, compatibility issues, 
+        or anything else that is really worth reader's attention.
+    </warning>
+    <info>
+        This one can contain any side notes, recommendations or tips! Did you know that Small Fish has released best s&box game 
+        in March 2024, called <b>My Summer Cottage</b>?
+    </info>
+
+    <h3>Code Blocks</h3>
+    <p>
+        This website uses just one external library, it is <a href="https://highlightjs.org/">highlight.js</a>. It allows to add 
+        fancy code preview for HLSL and other things. If you want to add a HLSL code snippet in your article, this is how you do it:
+    </p>
+    <pre><code class="language-html">
+&lt;pre&gt;&lt;code class=&quot;language-hlsl&quot;&gt;
+float farts = Ass.Sample( g_sAniso, i.vTextureCoords.xy );
+&lt;/code&gt;&lt;/pre&gt;
+    </code></pre>
+    <p>
+        It's using custom HLSL highligher, I've tried to shove bunch of s&box specific things into it for better readability. I believe 
+        it also supports number of other languages by default, like HTML, JS and few other things - but I don't think it will be useful here. 
+        I may disable this in the future. 
+    </p>
+    
+    <h3>Variable Names</h3>
+    <p>
+        If you want to give fancy styling to things like variable names (example: <string>o.vPositionOs.xyz</string>), you can 
+        use <string>string</string> tag. Unlike other special tags, this one is <b>inline</b> - so you can insert it inside of paragraphs, 
+        and even warning/info blocks too. 
+    </p>
+    <pre><code class="language-html">
+&lt;p&gt;
+    &lt;string&gt;This is an example!&lt;/string&gt;
+&lt;/p&gt;
+    </code></pre>
+
+    <h3>Headings and Subheadings</h3>
+    <p>
+        They're marked using <string>h2</string> and <string>h3</string>. They have special feature: when you add them onto your page, 
+        local JS script will automatically populate the list of available headings on this page, located on right side of the page. 
+        When you click on them, you will be automatically redirect to that section of the article. This side panel also highlights 
+        which section of the page you're currently reading. 
+    </p>
+    <warning>
+        This panel is visible only if your browser viewport width is larger than 1800px. On smaller viewports it will be hidden.
+    </warning>
+    
+    <h2>Testing Locally</h2>
+    <p>
+        Please make sure to test your changes locally before submitting them to GitHub. This should be trivial: you will need 
+        <b>Visual Studio Code</b> and <b>Live Server</b> extension. Open <string>index.html</string> and click on the 
+        <b>Go Live</b> button - it should be in bottom right corner, unless your VSCode has different UI layout. 
+    </p>
+    <p>
+        When making changes to any pages, they will be automatically reloaded. JS and CSS changes are also automatically updated once 
+        you save the file. Functionally wise, local instance of this website should work just like on the live website. 
+    </p>
+
+</div>
