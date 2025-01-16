@@ -84,6 +84,34 @@
         in March 2024, called <b>My Summer Cottage</b>?
     </info>
 
+    <h3>Download Tag</h3>
+    <p>
+        This website has custom download tag that allows adding new fancy download buttons in article without having to build 
+        annoyingly bulky HTML structure. Implementation is declared in <string>customelements.js</string>. This is how you add 
+        it onto the page:
+    </p>
+    <pre><code class="language-html">
+&lt;download-file url=&quot;/shaders/Pt8_VertexColors.shader&quot; title=&quot;Download the complete shader:&quot; icon=&quot;file_open&quot;&gt;&lt;/download-file&gt;    
+    </code></pre>
+    <p>
+        This tag supports custom download prompt text, URL and icon:
+    </p>
+    <ul>
+        <li>
+            <string>url</string>: download link, must be linking directly to a file. All URL paths are written relatively to this website, 
+            <b>it cannot</b> redirect to any other website. This may change in the future if necessary. 
+        </li>
+        <li>
+            <string>title</string>: accepts any text as an input. It will appear as the download prompt text. 
+        </li>
+        <li>
+            <string>icon</string>: string that represents the icon name. It works the same way as for custom navigation names 
+            and icons in the article's header - which means that it accepts any Google's material icons. 
+        </li>
+    </ul>
+    <download-file url="/shaders/Pt8_VertexColors.shader" title="Download the complete shader:" icon="file_open"></download-file>
+
+
     <h3>Code Blocks</h3>
     <p>
         This website uses just one external library, it is <a href="https://highlightjs.org/">highlight.js</a>. It allows to add 
