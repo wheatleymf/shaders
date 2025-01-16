@@ -1,12 +1,8 @@
-<div class="ArticleHeader">
-    <div class="icon">
-        <span class="material-symbols-sharp">shadow_add</span>
-    </div>
-    <div class="description">
-        <span>local website stuff</span>
-        <h1>Contributing</h1>
-    </div>
-</div>
+<article-header
+    name="Contributing"
+    icon="shadow_add"
+    category="local website stuff"    
+></article-header>
 <div class="Article">
     <p>
         If you'd like to contribute and submit your own article, (or if you'd like to edit any existing ones) you will have 
@@ -29,15 +25,11 @@
         copy the icon's name.
     </p>
     <pre><code class="language-html">
-&lt;div class=&quot;ArticleHeader&quot;&gt; 
-    &lt;div class=&quot;icon&quot;&gt;
-        &lt;span class=&quot;material-symbols-sharp&quot;&gt;insert_icon_name_here&lt;/span&gt;
-    &lt;/div&gt;
-    &lt;div class=&quot;description&quot;&gt;
-        &lt;span&gt;category name&lt;/span&gt;
-        &lt;h1&gt;Article name!&lt;/h1&gt;
-    &lt;/div&gt;
-&lt;/div&gt;
+&lt;article-header
+    name=&quot;Styling Tests&quot;
+    icon=&quot;experiment&quot;
+    category=&quot;website tests&quot;    
+&gt;&lt;/article-header&gt;
     </code></pre>
     <p>
         Then, create a new <string>div</string> element with a class <string>Article</string>. It just makes sure that all your text (and other content)
