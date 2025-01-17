@@ -1,0 +1,247 @@
+<article-header
+    name="Dithering Effect"
+    icon="background_dot_small"
+    category="postprocessing"    
+></article-header>
+<div class="Article">
+    <img src="/media/postprocessing_dither.png">
+    <p>
+        Here's a little fun thing from <b>My Summer Cottage</b>, dithering post-processing effect. 
+    </p>
+    <h2>Shader Setup</h2>
+    <p>
+        Let's start with the same thing as always. MODES, COMMON, pixel and vertex inputs, and then vertex shader. This doesn't differ 
+        much from different post-processing shaders. As you can see, you can define vertex/pixel structs under different names if that's 
+        what you prefer. 
+    </p>
+    <pre><code class="language-hlsl">
+MODES
+{
+    VrForward();
+}
+
+COMMON
+{
+    #include "postprocess/shared.hlsl"
+}
+
+struct VS_INPUT
+{
+    float3 vPositionOs : POSITION < Semantic( PosXyz ); >;
+};
+
+struct PS_INPUT
+{
+    #if ( PROGRAM == VFX_PROGRAM_VS )
+        float4 vPositionPs : SV_Position;
+    #endif
+
+    #if ( ( PROGRAM == VFX_PROGRAM_PS ) )
+        float4 vPositionSs : SV_Position;
+    #endif
+};
+
+VS
+{
+    PS_INPUT MainVs( VS_INPUT i )
+    {
+        PS_INPUT o;
+
+        o.vPositionPs = float4( i.vPositionOs.xyz, 1.0f );
+
+        return o;
+    }
+}
+    </code></pre>
+    <p>
+        Now let's make pixel shader section (<string>PS</string>), include postprocessing core files, define frame buffer 
+        and some variables. 
+    </p>
+    <pre><code class="language-hlsl">
+PS 
+{
+    #include "postprocess/common.hlsl"
+
+    CreateTexture2D( g_ColorTexture ) < Attribute( "Color" ); SrgbRead( true ); >;
+    int ColorLevels < Attribute( "ColorLevels" ); Default( 16 ); >;
+    int DitherResolution < Attribute( "DitherRes" ); Default( 2 ); >;
+
+    // ...
+
+    float4 MainPs( PS_INPUT i ) : SV_Target0 
+    {
+        // ...
+    }
+}
+    </code></pre>
+    <p>
+        Here's the plan: this dithering effect will allow defining the resolution of dither pattern using <string>DitherResolution</string>
+        variable, as well as limit the color pallete of the current frame using <string>ColorLevels</string>. This should give somewhat a nice retro effect. 
+    </p>
+
+    <h3>Dithering, and Bayer Matrix</h3>
+    <p>
+        Let's pause for a moment and talk about dithering. What is dithering? I won't pretend to be a smartass, and will just 
+        quote Wikipedia instead - it is form of a noise that is applied to randomize quantization error. Dithering can be implemented 
+        using many types of noises. Random noise, bayer noise, blue noise... there is also <b>error diffusion</b>, but we touch 
+        this for now.    
+    </p>
+    <p>
+        That one specific dithering pattern you probably saw and liked is <b>bayer noise</b>. It uses a fixed bayer matrix. 
+        I won't pretend to be a smartass (again), here's a bayer matrix implementation by <b>ceitine</b>. Put it outside of <string>MainPs</string>.
+    </p>
+    <pre><code class="language-hlsl">
+static const float bayerMatrix[8][8] = {
+    0 / 64.0, 32 / 64.0, 8 / 64.0, 40 / 64.0, 2 / 64.0, 34 / 64.0, 10 / 64.0, 42 / 64.0,
+    48 / 64.0, 16 / 64.0, 56 / 64.0, 24 / 64.0, 50 / 64.0, 18 / 64.0, 58 / 64.0, 26 / 64.0,
+    12 / 64.0, 44 / 64.0, 4 / 64.0, 36 / 64.0, 14 / 64.0, 46 / 64.0, 6 / 64.0, 38 / 64.0,
+    60 / 64.0, 28 / 64.0, 52 / 64.0, 20 / 64.0, 62 / 64.0, 30 / 64.0, 54 / 64.0, 22 / 64.0,
+    3 / 64.0, 35 / 64.0, 11 / 64.0, 43 / 64.0, 1 / 64.0, 33 / 64.0, 9 / 64.0, 41 / 64.0,
+    51 / 64.0, 19 / 64.0, 59 / 64.0, 27 / 64.0, 49 / 64.0, 17 / 64.0, 57 / 64.0, 25 / 64.0,
+    15 / 64.0, 47 / 64.0, 7 / 64.0, 39 / 64.0, 13 / 64.0, 45 / 64.0, 5 / 64.0, 37 / 64.0,
+    63 / 64.0, 31 / 64.0, 55 / 64.0, 23 / 64.0, 61 / 64.0, 29 / 64.0, 53 / 64.0, 21 / 64.0
+};
+    </code></pre>
+    <p>
+        This will create a fixed 8x8 array that represents the 8x8 bayer pattern. 
+    </p>
+    <p>
+        While making some quick research before writing this article, I've found this really nice page about <a href="https://surma.dev/things/ditherpunk/">dithering, by surma.dev</a>.
+        It really goes in a lot of details about dithering, error diffusion, and other general techniques. Asides of cool "retro effects",
+        dithering is still sometimes used in rendering, you can see it in s&box for semi-transparent surfaces too. 
+    </p>
+
+    <h3>Implementing Dithering</h3>
+    <p>
+        Start with sampling the color buffer:
+    </p>
+    <pre><code class="language-hlsl">
+float4 color = Tex2D( g_ColorTexture, i.vPositionSs.xy / g_vViewportSize.xy ).rgba;
+    </code></pre>
+    <p>
+        Let's make a new variable that will hold the screen-space pixel position with <b>dither resolution</b> applied:
+    </p>
+    <pre><code class="language-hlsl">
+float2 pos = i.vPositionSs.xy / DitherResolution;
+    </code></pre>
+    <p>
+        And now we will need to generate a <b>bayer mask</b>. This is how you generate it:
+    </p>
+    <pre><code class="language-hlsl">
+float mask = bayerMatrix[pos.x % 8][pos.y % 8];
+    </code></pre>
+    <p>
+        Using screen-space pixel coordinates, we're basically sampling the bayer matrix along the viewport. 
+        As a result, this will generate a cohesive bayer pattern. To avoid pixel position going out of array's 
+        bounds, we're applying modulus operation, so <string>pos.x</string> or <string>pos.y</string> are mapped cyclically within 
+        the range of 0-7.
+    </p>
+    <p>
+        If you try returning this mask variable for test, you will see that it has formed a proper pattern, although it isn't used 
+        anywhere yet:
+    </p>
+    <img src="/media/postprocessing_bayer.png">
+    
+    <h3>Quantization and Dithering</h3>
+    <p>
+        Before applying dithering, another step is applying <b>quantization</b> to the frame buffer. What does it do? Basically, think of it like opening a clean 
+        image in Photoshop, and then switching to "indexed colors" mode where you limit the palette to a certain number. This is what 
+        happens with the image when you do quantization in shaders. 
+    </p>
+    <p>
+        In HLSL, this is how you can do quantization: 
+    </p>
+    <pre><code class="language-hlsl">
+// Quantization simple example:
+return floor( 16 * color ) / 16;
+    </code></pre>
+    <p>
+        Where <string>16</string> is the new "limit" on colors. If you try returning this as a test, this is how it will look like 
+        with a value of 16:
+    </p>
+    <img src="/media/postprocessing_quantization.png">
+    <p>
+        To make this effect look less like shit, smart nerd guys long ago have came up with the idea of applying dithering noise/patterns 
+        to smooth transition between these colors. Adding dithering here would be very easy, just add your new variable <string>mask</string>
+        to <string>color</string> in the example above. 
+    </p>
+    <pre><code class="language-hlsl">
+return floor( ColorLevels * color + mask ) / ColorLevels;
+    </code></pre>
+    <p>
+        And that's it! Your shader is now complete. Let's make a quick component for it. 
+    </p>
+
+    <h2>Implementing C# Component</h2>
+    <p>
+        Make a new .cs file. Give it any name. Make sure your new class inherits from <string>PostProcess</string>. Add two 
+        <string>int</string> properties:
+    </p>
+    <pre><code class="language-csharp">
+public sealed class ScreenFog : PostProcess, Component.ExecuteInEditor
+{
+    [Property] 
+    [Description( "Affects quantization of color buffer pallete." )] 
+    [Range( 4, 64, 4 )]
+    private int ColorLevels = 16;
+
+    [Property]
+    [Description( "Resolution of the dithering effect, where 1x is full-scale, 2x is half-res, etc..." )]
+    [Range( 1, 4 )]
+    private int Resolution = 2;
+
+    // ...
+}
+    </code></pre>
+    <p>
+        Create variables for the render hook and RenderAttributes:
+    </p>
+    <pre><code class="language-csharp">
+private IDisposable hook;
+private RenderAttributes attributes = new();
+    </code></pre>
+    <p>
+        Add overrides for <string>OnEnabled()</string> and <string>OnDisabled()</string> so render hook is properly disposed 
+        whenever this component is disabled/enabled. 
+    </p>
+    <pre><code class="language-csharp">
+protected override void OnEnabled()
+{
+    hook?.Dispose();
+    hook = Camera.AddHookAfterTransparent( "RenderFog", -1, Render );
+}
+
+protected override void OnDisabled()
+{
+    hook?.Dispose();
+    hook = null;
+}
+    </code></pre>
+    <p>
+        At last, add the <string>Render</string> method that will create a new material from your new post-processing shader, 
+        push <string>ColorLevels</string> and <string>Resolution</string> into render attributes (along with the frame texture),
+        and then render the shader effect.
+    </p>
+    <pre><code class="language-csharp">
+public void Render( SceneCamera camera )
+{
+    var material = Material.FromShader( "shaders/saunaDither.shader" );
+
+    attributes.Set("ColorLevels", ColorLevels );
+    attributes.Set( "DitherRes", Resolution );
+    Graphics.GrabFrameTexture( "Color", attributes );
+    Graphics.Blit( material, attributes );
+}
+    </code></pre>
+    <p>
+        Attach this component to the camera object on your scene and see what happens! 
+    </p>
+    <img src="/media/postprocessing_dither.png">
+
+    <p>
+        You should be able to adjust the dither pattern resolution, and the total amount of colors used on frame texture. 
+    </p>
+
+    <download-file url="/shaders/Postprocessing_Dither.shader" title="Download the complete shader:" icon="file_open"></download-file>
+    <download-file url="/assets/DitherEffect.cs" title="Download the example component:" icon="frame_source"></download-file>
+</div>
