@@ -1,0 +1,233 @@
+<article-header
+    name="Screenspace Fog"
+    icon="foggy"
+    category="postprocessing"    
+></article-header>
+<div class="Article">
+    <img src="/media/postprocessing_screenfog.png">
+    <p>
+        <b>Screen-space fog</b> is one of the simplest way to implement fog in your game. It utilizes <b>depth buffer</b> to read the 
+        screen depth and calculate fog based on this data. In this article, you'll create screenspace fog with ability to adjust 
+        density and change fog color. 
+    </p>
+    <h2>Set up a Shader</h2>
+    <p>
+        Add <string>MODES</string> section with <b>VrForward()</b> added. You'll also need to add <string>COMMON</string> and include 
+        a HLSL file <b>"postprocess/shared.hlsl"</b>. It will add bunch of core <string>fxc</string> files that carry most global variables 
+        and other properties that will be used in this shader.
+    </p>
+    <pre><code class="language-hlsl">
+MODES
+{
+    VrForward();
+}
+
+COMMON
+{
+    #include "postprocess/shared.hlsl"
+}
+    </code></pre>
+
+    <h3>Vertex and Pixel structs</h3>
+    <p>
+        Let's add VertexInput and PixelInput structs. This time, it can be even more primitive: in fragment shader you'll only need 
+        screen-space coordinates, so let's add <string>vPositionOs</string> to vertex struct and <string>vPositionSs</string> to 
+        pixel struct.
+    </p>
+    <pre><code class="language-hlsl">
+struct VertexInput
+{
+    float3 vPositionOs : POSITION;
+};
+
+struct PixelInput
+{
+    float4 vPositionSs : SV_Position;
+};
+    </code></pre>
+    <p>
+        Keep in mind that any property with a semantic of <string>SV_Position</string> must be a float4. 
+    </p>
+
+    <h3>Vertex Shader</h3>
+    <p>
+        In vertex shader, (<string>VS</string> section), lets just create a new empty <string>PixelInput</string> object and put 
+        data from vertex input's <b>vPositionOs</b> into pixel input's <string>vPositionSs</string>. Since object-space position is 
+        a vector with only three components, it must be put into <string>float4(...)</string> function. Fourth component is viewport 
+        scale for this shader I believe...  
+    </p>
+    <pre><code class="language-hlsl">
+VS
+{
+    PixelInput MainVs( VertexInput i )
+    {
+        PixelInput o;
+        o.vPositionSs = float4( i.vPositionOs.xyz, 1.0f );
+
+        return o;
+    }
+}
+    </code></pre>
+
+    <h3>Pixel Shader Variables</h3>
+    <p>
+        Now for fragment shader, make a new block <string>PS</string>. You need to include a few files, create Texture2D with 
+        an attribute for the color buffer, define a new sampler state, and define the variable for C# component.   
+    </p>
+    <pre><code class="language-hlsl">
+PS
+{
+    #include "postprocess/common.hlsl"
+    #include "common/classes/Depth.hlsl"
+
+    float3 fogColor < Attribute( "Color" ); >;
+    float fogEnd < Attribute( "FogEndDistance" ); Default( 1250 ); >;
+    float fogDensity < Attribute( "FogDensity" ); Default( 0.5 ); >;
+    
+    CreateTexture2D( g_tColorBuffer ) < Attribute( "ColorBuffer" ); SrgbRead( true ); >;
+    SamplerState sLinear < Filter( Linear ); >;
+
+    float4 MainPs( PixelInput i ) : SV_Target0
+    { 		
+        // ... 
+    }
+}
+    </code></pre>
+    <p>
+        Wow, what is <string>Depth.hlsl</string>? This is HLSL file that defines a very useful <a href=https://docs.facepunch.com/s/sbox-dev/doc/depth-TeFIlRYujJ">Depth class</a>. It has it's own texture input 
+        for the depth buffer, which is why you don't have to manually pass depth into your post-processing shader. Instead of having to normalize 
+        and linearize depth buffer values yourself, depth class already comes with a bunch of functions that do it for you. 
+    </p>
+    <p>
+        You're already familiar with making a new Texture2D with an attribute. <string>fogColor</string> will read the values from any 
+        C# data that is passed with a name of "Color". In C# component, color is represented by the Color class which consits of four 
+        channels, but in this case you'll only need RGB, so it's a float3. <string>fogEnd</string> will set the "end" point for the fog 
+        where it will go fully visible. <string>fogDensity</string> will adjust the length of fog's gradient. 
+    </p>
+    <p>
+        You also need to define your own sampler state. None of the included common post-processing files contain
+        <a href="https://docs.facepunch.com/s/sbox-dev/doc/sampler-states-LlJc7ymJkq#h-common-samplers">common sampler states</a>. 
+        This is very easy though, just make a new sampler state with filter set to <b>Linear</b>. Nothing else is required.  
+    </p>
+
+    <h3>Pixel Shader function</h3>
+    <p>
+        First, sample the color buffer and store it in the <string>float3</string> variable. 
+    </p>
+    <pre><code class="language-hlsl">
+float3 ColorBuffer = g_tColorBuffer.Sample( sLinear, i.vPositionSs.xy / g_vViewportSize.xy ).rgb;
+    </code></pre>
+    <p>
+        Since you're not using texture coordinates in this shader, screen-space position must be divided <string>g_vViewportSize.xy</string>,
+        which holds the size of your current viewport. Next step is getting the normalized depth buffer value for given pixel. 
+        Using functions from HLSL classes is done in the following format: <string>ClassName::Function(...)</string>. 
+        In this, it will be <b>Depth::GetLinear( ... )</b>.
+    </p>
+    <pre><code class="language-hlsl">
+float flLinear = Depth::GetLinear( i.vPositionSs.xy );
+    </code></pre>
+    <p>
+        Using <a href="https://docs.facepunch.com/s/sbox-dev/doc/depth-TeFIlRYujJ#h-depthlinearize-float-d">linear</a> depth buffer value is perfect in this case. This allows easily building a much nicer fog. 
+        Using raw/normalized depth data would be more annoying to work with, because by default depth buffer prioritizes 
+        more precision up close, and gets abruptly dark and less precise further away. Linearized depth data makes it easier, 
+        since it adjusts the depth value to be a properly linear 0-1 range, with ability to clamp the "end" point in world-space units.
+    </p>
+    <p>
+        Also, let's make a new variable out of <string>fogColor</string>, because color value sent from 
+        C# as an attribute must be converted from sRGB to linear color space so it doesn't look off in your shader:
+    </p>
+    <pre><code class="language-hlsl">
+float3 _fogColor = SrgbGammaToLinear( fogColor.rgb );
+    </code></pre>
+    <p>
+        Now, let's make a new variable that will handle the lerp between frame buffer and fog. 
+    </p>
+    <pre><code class="language-hlsl">
+float3 fogBlend = lerp( _fogColor, ColorBuffer, smoothstep( 0, fogDensity, 1 - flLinear / fogEnd ) );
+    </code></pre>
+    <p>
+        You're probably familiar with lerp function already, but let me explain what's going on in the third argument. 
+        First, there's <a href="https://thebookofshaders.com/glossary/?search=smoothstep">smoothstep</a> function - this is a native 
+        HLSL function, check it out. Inside of it, first we're diving linear depth value by distance, in world-space units. 
+        This makes sure that depth buffer is "stretched" across from camera to given end distance. Then, <string>flLinear / fogEnd</string>
+        is substracted from <string>1</string>. This will "invert" the value. For values within [0-1] range, you can do simple
+        <string>value = 1 - value</string> to invert it.  
+    </p>
+    <p>
+        <string>fogDensity</string> as smoothstep's "max" value will control how dense this fog is. By default, gradient length may be 
+        a bit too long for your preference, so hooking up this attribute allows defining how long this gradient is. 1 will make it 
+        very long, while 0 will make this gradient disappear altogether.  
+    </p>
+    <p>
+        After that, this blended color variable is returned as a final pixel: 
+    </p>
+    <pre><code class="language-hlsl">
+return float4( fogBlend, 1 );        
+    </code></pre>
+    
+    <h2>Fog Component</h2>
+    <p>
+        Make a new component, give it any name. Make sure it inherits from <string>PostProcess</string> component. Camera component 
+        will be access from it. Add variables for <b>fog color</b>, <b>fog density</b>, and <b>fog end distance</b>.
+    </p>
+    <pre><code class="language-csharp">
+[Property][Description("Specifies the distance where fog gets fully visible, in world units")] 
+public float EndDistance { get; set; } = 1250.0f;
+	
+[Property][Range( 0, 1 )][Description("Defines the length between start and end of the fog gradient")]
+public float FogDensity { get; set; } = 0.5f;
+	
+[Property]
+public Color Color { get; set; }
+
+private IDisposable hook;
+private RenderAttributes attributes = new();
+    </code></pre>
+    <p>
+        Just like with the previous post-processing effect, add <string>OnEnabled()</string> and <string>OnDisabled()</string> 
+        overrides, so render hook gets properly disposed if this component gets disabled. 
+    </p>
+    <pre><code class="language-csharp">
+protected override void OnEnabled()
+{
+    hook?.Dispose();
+    hook = Camera.AddHookAfterTransparent( "RenderFog", -1, Render );
+}
+
+protected override void OnDisabled()
+{
+    hook?.Dispose();
+    hook = null;
+}
+    </code></pre>
+    <p>
+        The last argument in "AddHookAfterTransparent" points onto the function that will handle all actual rendering and blitting 
+        the post-processing shader. Let's implement it:
+    </p>
+    <pre><code class="language-csharp">
+public void Render( SceneCamera camera )
+{
+    var material = Material.FromShader( "shaders/screenspace_fog.shader" );
+		
+    attributes.Set( "FogEndDistance", EndDistance );
+    attributes.Set( "Color", Color );
+    attributes.Set( "FogDensity", FogDensity);
+
+    Graphics.GrabFrameTexture( "ColorBuffer", attributes );
+    Graphics.Blit( material, attributes );
+}
+    </code></pre>
+    <p>
+        First, we're creating a new material at runtime from your new screenspace fog shader. Then, we throw all component properties 
+        into render attributes so they can be read from the shader. Also we send current frame texture into it. At last, blit it using 
+        the given material and render attributes.   
+    </p>
+    <p>
+        Now try setting up the properties in your new component! This shader should work from editor too, without having to go into 
+        play mode and see if any changes were made to the camera.  
+    </p>
+    <img src="/media/postprocessing_fogcomponent.png">
+
+    <download-file url="/shaders/Postprocessing_Fog.shader" title="Download the complete shader:" icon="file_open"></download-file>
+    <download-file url="/assets/ScreenFog.cs" title="Download the example component:" icon="frame_source"></download-file>
+</div>
