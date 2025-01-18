@@ -54,7 +54,7 @@ CreateInputTexture2D( AmbientOcclusion, Linear, 8, "", "_ao",  "Material,10/Ambi
     </p>
     <p>
         Normal maps, despite being a colored map too, don't have to be processed in sRGB color space. Technically, it's a packed texture consisting 
-        of three unique maps, so for proper precision they must be handled in linear color space. This also applied to nearly all other grayscale maps, 
+        of three unique maps, so for proper precision they must be handled in linear color space. This also applies to nearly all other grayscale maps, 
         like masks and other textures that represent data instead of color. 
     </p>
     <p>
@@ -90,6 +90,10 @@ Texture2D g_tRma    < Channel( R, Box( Roughness), Linear ); Channel( G, Box( Me
     <img src="/media/texturepacking.png">
 
     <h2>Sampling Textures</h2>
+    <p>
+        If you're looking for a sample material to test, here's a ground rock material made for <b>My Summer Cottage</b>.
+    </p>
+    <download-file url="/assets/msc_rock3.zip" title="Download sample material:" icon="archive"></download-file>
     <p>
         Before proceeding, let's reinstate texture scroll, scale and tint variables from the unlit shader. This was done as a part of 
         article "Textures and Variables". 
@@ -197,7 +201,7 @@ mat.TintMask = albedo.a;
     </pre></code>
     <p>
         To pick specific texture from these "packed" vectors, just select the corresponding channel that you specified in your 
-        Texture2D declarations. Here, roughness map is on red channel, metalness is on green, and ambient occlusion in on blue. 
+        Texture2D declarations. Here, roughness map is in red channel, metalness is in green, and ambient occlusion is in blue. 
         Tint mask is stored along with a color map as a 4th channel, alpha.      
     </p>
     <p>
