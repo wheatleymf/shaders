@@ -87,5 +87,20 @@ class ArticleHeader extends HTMLElement {
     }
 }
 
+class ArticleRef extends HTMLElement {
+    constructor()
+    {
+        super();
+
+        const link = this.getAttribute( "link" );
+        this.classList.add("ref");
+
+        this.onclick = function() {
+            DisplayCategory( link );
+        }
+    }
+}
+
 customElements.define("download-file", DownloadElement);
 customElements.define("article-header", ArticleHeader);
+customElements.define("article-ref", ArticleRef );
