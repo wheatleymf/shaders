@@ -64,11 +64,11 @@ StaticCombo( S_BLEND_LAYER, F_BLEND_LAYER, Sys( ALL ) );
     // Second layer rendered on top, create input slots
     //
 #if ( S_BLEND_LAYER )
-    CreateInputTexture2D( LayerColor, 		    Srgb, 	8, "", "_color", "Material B,20/Albedo Map,20/10", Default3( 1.0, 1.0, 1.0 ) );						
-    CreateInputTexture2D( LayerColorTintMask, 	Linear, 8, "", "_tint", "Material B,20/Albedo Map,20/20", Default1( 1 ) );						
-    CreateInputTexture2D( LayerNormal, 			Linear, 8, "NormalizeNormals", "_normal", "Material B,20/Normal Map,20/30", Default3( 0.5, 0.5, 1.0 ) );		
-    CreateInputTexture2D( LayerRoughness, 		Linear, 8, "", "_rough", "Material B,20/Roughness,20/40", Default( 1 ) );											
-    CreateInputTexture2D( LayerMetalness, 		Linear, 8, "", "_metal",  "Material B,20/Metalness,20/50", Default( 0 ) );									
+    CreateInputTexture2D( LayerColor,           Srgb, 	8, "", "_color", "Material B,20/Albedo Map,20/10", Default3( 1.0, 1.0, 1.0 ) );						
+    CreateInputTexture2D( LayerColorTintMask,   Linear, 8, "", "_tint", "Material B,20/Albedo Map,20/20", Default1( 1 ) );						
+    CreateInputTexture2D( LayerNormal,          Linear, 8, "NormalizeNormals", "_normal", "Material B,20/Normal Map,20/30", Default3( 0.5, 0.5, 1.0 ) );		
+    CreateInputTexture2D( LayerRoughness,       Linear, 8, "", "_rough", "Material B,20/Roughness,20/40", Default( 1 ) );											
+    CreateInputTexture2D( LayerMetalness,       Linear, 8, "", "_metal",  "Material B,20/Metalness,20/50", Default( 0 ) );									
     CreateInputTexture2D( LayerAmbientOcclusion,Linear, 8, "", "_ao",  "Material B,20/Ambient Occlusion,20/60", Default( 1 ) );
 
     // Input slot for 2nd layer emission if it's enabled
@@ -80,8 +80,8 @@ StaticCombo( S_BLEND_LAYER, F_BLEND_LAYER, Sys( ALL ) );
     #endif  
 
     Texture2D layerColorMap  < Channel( RGB, Box( LayerColor ), Srgb ); Channel( A, Box( LayerColorTintMask ), Linear ); OutputFormat( BC7 ); SrgbRead( true ); >;
-	Texture2D layerNormalMap < Channel( RGB, Box( LayerNormal ), Linear ); OutputFormat( DXT5 ); SrgbRead( false ); >; 
-	Texture2D g_tRmaLayer    < Channel( R, Box( LayerRoughness ), Linear ); Channel( G, Box( LayerMetalness ), Linear); Channel( B, Box( LayerAmbientOcclusion ), Linear ); OutputFormat( BC7 ); SrgbRead ( false ); >; 
+    Texture2D layerNormalMap < Channel( RGB, Box( LayerNormal ), Linear ); OutputFormat( DXT5 ); SrgbRead( false ); >; 
+    Texture2D g_tRmaLayer    < Channel( R, Box( LayerRoughness ), Linear ); Channel( G, Box( LayerMetalness ), Linear); Channel( B, Box( LayerAmbientOcclusion ), Linear ); OutputFormat( BC7 ); SrgbRead ( false ); >; 
 
     // Add control sliders same as in Material A, but for Material B.
     float   g_flLayerNormalIntensity < UiType( Slider ); Range( 0, 3 ); Default( 1 ); UiGroup( "Material B,20/Normal Map,20/31" ); >;
