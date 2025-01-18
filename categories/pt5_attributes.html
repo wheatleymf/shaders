@@ -159,7 +159,8 @@ protected override void OnUpdate()
     <p>
         Keep in mind that you must be hyperaware of data types you're marking as an attribute in your shader code. If you, for example, 
         accidentally pass <string>Vector3</string> from C# to your shader as a <string>float2</string>, there will be no warnings or errors. 
-        Shader will just read first two components and cull the 3rd one. If you see that your attribute data is rendering not as you expect 
+        Shader will just read first two components and cull the 3rd one. If you see that your attribute data is rendering not as you expect,
+        then there's probably a typo in your attribute name, or you picked wrong type.  
     </p>
     <img src="/media/pt5_component.png">
 
