@@ -265,6 +265,26 @@ async function DisplayCategory( categoryName )
     UpdateSidebar( categoryName );
 } 
 
+// 
+// Monitor user search state: if they move back/forward in page history, it should display the correct article. 
+//
+let alreadyMonitoring = false;
+function MonitorQueryUpdates()
+{
+    if (alreadyMonitoring)
+        return new Error( "Attempting to start monitor query updates when it is already initialized!" );
+    console.log( 'ok' );
+
+    window.addEventListener( 'popstate', () => {
+        const params = new URLSearchParams( window.location.search );
+        const entry = params.get( "entry" ); 
+
+        DisplayCategory( entry );
+    });
+
+    alreadyMonitoring = true;
+}
+
 function ReadQuery()
 {
     const params = new Proxy( new URLSearchParams( window.location.search ), {
@@ -285,4 +305,6 @@ let RequiresEntry = ReadQuery();
 
 if ( !RequiresEntry )
     DisplayCategory( "welcome" );
+
+MonitorQueryUpdates();
 
