@@ -203,6 +203,35 @@ function UpdateNavigator( page )
     headings.forEach( (heading) => observer.observe( heading ) );
 }
 
+function GrabURLentry( name )
+{
+    const params = new Proxy( new URLSearchParams( window.location.search ), {
+        get: (searchParams, prop) => searchParams.get(prop),
+    });
+    let value = params[ name ];
+
+    return value; 
+}
+
+function TryRestoreScrolling( entry ) 
+{
+    if ( !localStorage.getItem( entry ) )
+        return;
+
+    let position = localStorage.getItem( entry );
+
+    window.scrollTo( {
+        top: position,
+        behavior: 'smooth'
+    });
+}
+
+function SaveScrollPosition()
+{
+    let page = GrabURLentry( "entry" );
+    localStorage.setItem( page, window.scrollY );
+}
+
 async function DisplayCategory( categoryName )
 {
     let target = document.querySelector(".contents");
@@ -212,6 +241,9 @@ async function DisplayCategory( categoryName )
     let lastModified;
     let status = true;
     let responseCode;
+
+    // Write the scroll position for the current page
+    SaveScrollPosition();
 
     UpdateLoader( true, callerObject );
 
@@ -254,6 +286,9 @@ async function DisplayCategory( categoryName )
 
     // Make sure to run code highlighter on recevied page before rendering it
     hljs.highlightAll( );
+    
+    // Try restoring the scroll for this page if it's been locally saved
+    TryRestoreScrolling( categoryName );
 
     // Add "onclick" event on all images featured in the downloaded article
     let images = document.getElementsByTagName("img");
@@ -273,7 +308,6 @@ function MonitorQueryUpdates()
 {
     if (alreadyMonitoring)
         return new Error( "Attempting to start monitor query updates when it is already initialized!" );
-    console.log( 'ok' );
 
     window.addEventListener( 'popstate', () => {
         const params = new URLSearchParams( window.location.search );
@@ -287,11 +321,7 @@ function MonitorQueryUpdates()
 
 function ReadQuery()
 {
-    const params = new Proxy( new URLSearchParams( window.location.search ), {
-        get: (searchParams, prop) => searchParams.get(prop),
-    });
-
-    let value = params["entry"];
+    let value = GrabURLentry( "entry" );
 
     if ( value != null )
     {
