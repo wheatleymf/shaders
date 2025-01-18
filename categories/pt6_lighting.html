@@ -134,6 +134,9 @@ float3 rma = g_tRma.Sample( g_sAniso, uv ).rgb;
         everything is done in a simple manner. Since <string>ColorMap</string> contains four channels, it will be sampled into 
         <string>float4</string> vector. Normals and Roughness-Metalness-AO pack use three channels, so it'll be float3 for both of them. 
     </p>
+    <p>
+        There's more what I can tell about normals: if you want to learn more about them, check out the <article-ref link="normals">Normal Map Types</article-ref> article.
+    </p>
 
     <h3>Transforming Normals to World Space</h3>
     <p>

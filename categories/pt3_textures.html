@@ -27,7 +27,7 @@
 
     <h3>Disabling unnecessary texture inputs</h3>
     <p>
-        You probably noticed that our new unlit shader has two random texture inputs that you didn't add. This happens when your 
+        You probably noticed that your new unlit shader has two random texture inputs that you didn't add. This happens when your 
         fragment shader code does not contain a special definition, <string>#define CUSTOM_MATERIAL_INPUTS</string>. This behavior is controlled 
         by one of the HLSL files you've imported in previous article. Without this definition, s&box will attempt to generate two default 
         texture inputs itself. 
@@ -170,10 +170,13 @@ PS
 }     
     </code></pre>
     <p>
-        Also, you probably noticed this weird <b>g_t</b> in the texture name. Naming conventions in shaders can be quirky sometimes. For example,
+        Also, do you see this weird <b>g_t</b> in the texture name? Naming conventions in shaders can be quirky sometimes. For example,
         prefix <string>g_</string> just indicates that it's a <b>g</b>lobal variable. <string>t</string> indicates that this is a <b>t</b>exture.
         For some other stuff like float variables you can see things like <string>fl</string>, which just stands for <b>fl</b>oat. You aren't
         required to follow this naming format, stick with whatever feels easier for you.
+    </p>
+    <p>
+        I've covered common naving conventions in s&box shaders in a different article, and you can read about it here: <article-ref link="namings">Naming Conventions</article-ref>
     </p>
     <info>
         There's a cool thing about Material Editor: these little name indicators are automatically detected by the editor and hidden from 
@@ -266,6 +269,10 @@ float3 MyTexture = g_tColor.Sample( g_sAniso, i.vTextureCoords );
         are visualized as a <u>red</u> and <u>green</u> color channels. Single color channel is represented by a single float value, which
         will be visualized as a grayscale color.
     </info>
+    <p>
+        If you'd like to read more about floats, vectors and how values can represent color, I recommend checking out a separate 
+        article: <article-ref link="floats">Floats and Components</article-ref>
+    </p>
     <p>
         Imagine that this cursor is the shader looking at this pixel on screen. Basically, it's checking which information this fragment (pixel)
         has. Using the struct, we find out that it has, for example, texture coordinates of <string>0.221, 0.583</string> value, position at
