@@ -347,6 +347,24 @@ body {
     margin: 20 0;
 }
 
+.contents article-ref {
+    display: inline-block;
+    background: var(--pal-sf);
+    color: white;
+    padding: 0 10;
+    margin: 0 5;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+    transition: all .15s ease-in-out;
+}
+.contents article-ref:hover {
+    transform: scale( 1.1 );
+    color: var( --pal-sf );
+    background: white;
+    box-shadow: 0px 0px 32px rgba(0, 0, 0, 0.3);
+}
+
+
 /* DOWNLOAD SECTION */
 
 a.dl {
