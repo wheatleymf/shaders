@@ -126,8 +126,9 @@ FEATURES
                 compile without this mode.
             </li>
             <li>
-                <string>Depth()</string> will make shader write to depth. This is necessary for shadow rendering and few other render 
-                things like ambient occlusion, and anything else what relies on depth map. 
+                <string>Depth()</string> is an optional mode that will make shader write to depth. This is necessary for shadow rendering
+                and any other rendering techniques that rely on depth buffer (also known as <b>z-buffer</b>). 
+                Shaders that have depth mode disabled will not show up in depth buffer.
             </li>
             <li>
                 <string>ToolsVis( S_MODE_TOOLS_VIS )</string> is <b>DEPRECATED</b>, but you may see it in some older shader files. As of now, 
@@ -138,13 +139,13 @@ FEATURES
     <pre><code class="language-hlsl">
 MODES
 {
-	VrForward();
+    VrForward();
     Depth();
 }            
     </code></pre>
     <warning>
         <string>Depth()</string> will be replaced with <string>DepthNormal()</string> in the near future. I don't know if old shaders
-        will continue working, but you'll definitely need to replace it with a new method when it's out. It should bring support for G-buffer,
+        will continue working, but you'll definitely need to replace it with DepthNormal it's out. It should bring support for G-buffer,
         which is a nice addition. 
     </warning>
 
@@ -191,7 +192,7 @@ COMMON
     <pre><code class="language-hlsl">
 struct VertexInput
 {
-	#include "common/vertexinput.hlsl"
+    #include "common/vertexinput.hlsl"
 };
     </code></pre>
     <p>
@@ -213,7 +214,7 @@ struct VertexInput
     <pre><code class="language-hlsl">
 struct PixelInput
 {
-	#include "common/pixelinput.hlsl"
+    #include "common/pixelinput.hlsl"
 };
     </code></pre>
     <p>
