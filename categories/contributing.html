@@ -76,6 +76,28 @@
         in March 2024, called <b>My Summer Cottage</b>?
     </info>
 
+    <h3>Article Reference</h3>
+    <p>
+        You can add link to other articles on this website using <string>A</string> tag as usual, or use a special tag 
+        <string>article-ref</string>. It should provide slightly more smooth transition between pages, also it has custom styling.
+    </p>
+    <p>
+        Here's an example: click on this <article-ref link="postprocessing_fog">Screenspace Fog</article-ref> article to read 
+        about depth buffer and fog using post-processing shaders. 
+    </p>
+    <p>
+        Tag accepts following attributes:
+        <ul>
+            <li>
+                <string>link</string>: expects the internal file name of the article. It must match the name of the HTML page it is referencing, just 
+                like navigation buttons on the left.
+            </li>
+        </ul>
+    </p>
+    <pre><code class="language-html">
+&lt;article-ref link=&quot;postprocessing_fog&quot;&gt;Screenspace Fog&lt;/article-ref&gt;
+    </code></pre>
+
     <h3>Download Tag</h3>
     <p>
         This website has custom download tag that allows adding new fancy download buttons in article without having to build 
@@ -102,7 +124,6 @@
         </li>
     </ul>
     <download-file url="/shaders/Pt8_VertexColors.shader" title="Download the complete shader:" icon="file_open"></download-file>
-
 
     <h3>Code Blocks</h3>
     <p>
