@@ -1,9 +1,10 @@
 // Simple Navigation Tools
-// wheatleymf, July 2024
+// wheatleymf, July 2024 - January 2025
 //
-// This isn't meant to be a nice, clean code that is easy to pick up - I just wrote a quick tool for myself
-// because I CBA setting up a proper content system on my website. Yes, this is ugly, I'm sorry.
-// If someone can implement all of this properly in a clean and convenient way, I'll be glad to help.
+// This is very bad. I could've done a better job. This could've been done better using frameworks. 
+// I *could* do it better, but implementing actual content was more important to me... 
+// I am not trying to justify this mess! When you're limited on time, sometimes you should do things
+// like a moron. I can always come back to this later and fix all issues, step by step. 
 
 let currentCategory;
 let loaderTarget = document.querySelector( ".loader" );
@@ -11,6 +12,10 @@ let loaderTarget = document.querySelector( ".loader" );
 const Header = document.title;
 const QuickNavigation = document.querySelector( ".headers" );
 
+//
+// Transforms the relative link into proper URL, then grabs the last part that displays 
+// the file name and extension. Used for special <download-file> tag.  
+// 
 function GetFilenameFromURL( url )
 {
     const baseDomainURL = window.location.protocol + "//" + window.location.hostname;
@@ -26,11 +31,17 @@ function GetFilenameFromURL( url )
     }
 }
 
+// 
+// This is also 6 months old and I don't remember what the fuck is it doing. 
+// 
 function GetCaller( name )
 {
     return document.querySelector('[category=' + name + ']');
 }
 
+//
+// This is bad
+// 
 function UpdateLoader( status, callerObject = undefined )
 {
     switch( status )
@@ -46,6 +57,11 @@ function UpdateLoader( status, callerObject = undefined )
     }
 }
 
+// 
+// Update classes for the elements in sidebar navigation to indicate
+// which page is currently being read
+// This is stupid. And bad. But this is a ~6 months old bit.  
+//
 function UpdateSidebar( categoryName )
 {
     if ( currentCategory != null )
@@ -64,6 +80,10 @@ function UpdateSidebar( categoryName )
     callerObject.classList.add( "currentCategory" );
 }
 
+// 
+// Creates a new DOM element with the image preview in higher res.
+// Adds a button that prompts to view the image in a separate tab. 
+//
 function DisplayImage( image )
 {
     let url = image.getAttribute("src");
@@ -90,6 +110,10 @@ function DisplayImage( image )
     document.body.append( div );
 }
 
+//
+// Very rough implementation of error handler in case something on the page breaks 
+// horribly bad.
+//
 function LoaderError( reason, category, target, code )
 {
     UpdateLoader( false, category );
@@ -118,6 +142,10 @@ function LoaderError( reason, category, target, code )
     target.innerHTML += details;
 }
 
+// 
+// Automatically parses downloaded HTML content into a proper DOM elements
+// which allows doing querySelector and any other DOM element manipulations. 
+// 
 function ParseDOM( contents ) 
 {
     let parser = new DOMParser();
@@ -126,6 +154,9 @@ function ParseDOM( contents )
     return doc;
 }
 
+//
+// Updates the page title 
+// 
 function UpdateTitle( loadedPage )
 {
     let parsedData = ParseDOM( loadedPage );
@@ -137,16 +168,7 @@ function UpdateTitle( loadedPage )
     return `${ PageName } :: ${ Header }`;
 }
 
-function ResetScroll()
-{
-    window.scrollTo( {
-        top: 0,
-        behavior: 'smooth'
-    } );
-}
-
 let CurrentHeading; 
-
 function UpdateNavigator( page )
 {
     // Reset the contents of a quick navigation
@@ -203,6 +225,9 @@ function UpdateNavigator( page )
     headings.forEach( (heading) => observer.observe( heading ) );
 }
 
+//
+// Returns the value for given query request.
+// 
 function GrabURLentry( name )
 {
     const params = new Proxy( new URLSearchParams( window.location.search ), {
@@ -215,8 +240,16 @@ function GrabURLentry( name )
 
 function TryRestoreScrolling( entry ) 
 {
+    // Reset scroll to 0 if there's no value saved
     if ( !localStorage.getItem( entry ) )
+    {
+        window.scrollTo( {
+            top: 0, 
+            behavior: 'smooth'
+        });
+        
         return;
+    }
 
     let position = localStorage.getItem( entry );
 
@@ -278,17 +311,15 @@ async function DisplayCategory( categoryName )
     // Update the title page.. this is a very hacky way because it's basically an afterthought, this should be much better. 
     document.title = UpdateTitle( newPage );
 
-    // Set the page scroll at the top after opening a new page.
-    ResetScroll();
+    // Try restoring the scroll for this page if it's been locally saved
+    // If there's no scroll position saved on this page, scroll to top. 
+    TryRestoreScrolling( categoryName );
 
     // Update quick navigation window depending on what given article contains
     UpdateNavigator( target );
 
     // Make sure to run code highlighter on recevied page before rendering it
     hljs.highlightAll( );
-    
-    // Try restoring the scroll for this page if it's been locally saved
-    TryRestoreScrolling( categoryName );
 
     // Add "onclick" event on all images featured in the downloaded article
     let images = document.getElementsByTagName("img");
