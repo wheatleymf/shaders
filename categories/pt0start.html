@@ -10,7 +10,13 @@
         have nearly zero understanding of shaders. This is a very early iteration of this course, and some things may be incorrect, or poorly 
         written - please be patient as I try to polish this thing. 
     </p>
-    <h2>References</h2>
+    <p>
+        I'll also mention one more time that this <a href="https://github.com/wheatleymf/shaders">this website is open on GitHub</a>.
+        If you'd like to contribute, feel free to submit a pull request and I'll review it. 🙂 (also feel free to bug me in Discord 
+        if you do that, assuming that you're from s&box-related discord communities)
+    </p>
+    
+    <h3>References</h3>
     <p>
         If you plan to continue learning shaders on your own, you must know where you can find references for s&box shaders. There's no Intellisense 
         so I highly recommend looking up existing code. 
@@ -22,38 +28,59 @@
                 This documentation covers lots of s&box shader API, helper functions and other useful things.
             </li>
             <li><a href="https://wiki.facepunch.com/sbox/AnatomyOfVFX">s&box wiki</a>. It isn't always up-to-date, but it never hurts to check it out.</li>
+            <li>
+                Microsoft also provides a <a href="https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-language-syntax">complete documentation</a> for nearly everything what HLSL has. This probably won't be very useful for you as a beginner, but once you figure out the basics I recommend 
+                visiting it for any specific things. 
+            </li>
         </ul>
 
-        You probably already know about websites like <b>The Book of Shaders</b> or <b>Shadertoy</b> so I won't suggest them here. 
-        Microsoft also provides a <a href="https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-language-syntax">complete documentation</a> for nearly everything what HLSL has. This probably won't be very useful for you as a beginner, but once you figure out the basics I recommend 
-        visiting it for any specific things. 
+        I really encourage you to read source code for s&box shaders located in base addon, this may help figuring out some 
+        confusing parts about shaders. Do not hesitate to mess with your code: try changing values, math, functions and see what 
+        happens. Don't forget that you can visualize on screen nearly all data as colors. Don't be afraid to break shit, it's important 
+        to understand how data is represented in shaders and what every function does. 
+
     </p>
     <p>
         Default lighting model that s&box uses relies on <b>PBR</b>, aka <b>Physically Based Rendering</b>. This means that you should probably be 
         familiar with default artist's PBR workflow, understanding why do you need such texture maps as albedo, roughness, normals, metalness, etc...
-        If you'd like to get extremely nerdy about it, <b><a href="https://pbr-book.org/">"PBR Book"</a></b> should be very helpful. 
+        This <a href="https://marmoset.co/posts/physically-based-rendering-and-you-can-too/">article on PBR by Marmoset staff</a> seems to be 
+        pretty useful about the purpose of PBR and it's texture maps. 
+        And if you'd like to get extremely nerdy about it and understand the math behind it, <b><a href="https://pbr-book.org/">"PBR Book"</a></b>
+        should be very helpful for you. 
     </p>
     <p>
         And another tip: take your time. If something isn't clicking in your head and you can't figure out some concept, try again later.
-        Learning new things can fuck with your sanity, and sometimes the best solution is just coming back to it later.
+        Learning new things can fuck with your sanity sometimes, and sometimes the best solution is just "get some rest and come back to this later".
     </p>
-    <h2>Do I need to understand programming?</h2>
+
+    <h3>Do I need to understand programming?</h3>
     <p>
         Yeah. HLSL isn't a good language to start your programming adventures. If you have some experience with C#, you should feel comfortable 
         with 99% of HLSL syntax. Just like most other languages, is is made of variables, classes, functions and statements. 
-        You can define custom functions and classes, do any sorts of maths using same operators
+        You can define custom functions and classes, and do any sorts of math.
     </p>
-    <h2>Software Recommendations?</h2>
+    <p>
+        If you're an artist looking to learn shaders and you have no programming experience, I highly recommend mess with C# first 
+        and then come back to this later. It is possible to learn HLSL without prior knowledge, but I imagine that it will be
+        quite painful... but I am not going to stop you. 
+    </p>
+
+    <h3>Software Recommendations?</h3>
     <p>
         It doesn't really matter, so pick any text editor you prefer. Some people use <a href="https://visualstudio.microsoft.com/">Visual Studio</a>, some prefer to
         work in <a href="https://code.visualstudio.com/">Visual Studio Code</a>. Stuff like <b>JetBrains Rider</b> probably also works.
         If you're using VS Code, there are bunch of extensions that can improve HLSL code markdown to make navigating through code much easier.
     </p>
-    <h2>IntelliSense</h2>
+    <p>
+        If you decide to pick Visual Studio Code, I believe it will automatically recognize s&box shaders in ShaderLab format. This will 
+        properly highlight most of the code, although there will be some inaccuracies. 
+    </p>
+
+    <h3>IntelliSense</h3>
     <p>
         As of now, there's no IntelliSense for HLSL code or s&box API. This may appear annoying at first, but there's a good thing about
         s&box API - it doesn't rely on internal functions and API <i>too much</i>. You won't need to remember hundreds of random macros, 
         functions, or anything else. With enough practice, you'll feel comfortable typing code without having to constantly look up docs 
-        or some reference shaders. 
+        or some reference shaders, as long as you remember the HLSL syntax.
     </p>
 </div>
