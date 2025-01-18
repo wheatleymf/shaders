@@ -13,9 +13,14 @@
     <hr>
     <p>
         <b>What is a Combo?</b> In s&box shaders, it means a shader variant. If you're adding a new combo into your code, that does some extra 
-        operations, this tells the compiler to create essentially a new variant of your shader. So inside your compiled shader with combos, 
-        there's actually a collection of shader variants that switched between each other depending on features you're toggling 
-        from the Material Editor.    
+        operations, this tells the compiler to create essentially a new variant of your shader with this code. 
+        So inside your compiled shader with combos, there's actually a collection of shader variants that switched between each other depending on features you're toggling 
+        from the Material Editor.
+    </p>
+    <p>
+        Shader variant will have special code (defined by you) that exists only if certain static/dynamic combo is enabled. That's essentially 
+        code branching that allows you implementing optional features, but split into variations of compiled shader code so there's no actual 
+        giant branching at runtime. 
     </p>
     <img src="/media/pt4_shadercombos.png">
     <p>
@@ -33,7 +38,7 @@
         You still have a single shader file, and compiler generates all shader variants itself, which are static, and do not impact the performance.
     </p>
     <p>
-        <b>What's the difference between "static" and "dynamic"</b>? Functionally, they are the same, but both of them have unique 
+        <b>What's the difference between "static" and "dynamic"</b> combos? Functionally, they are the same, but both of them have unique 
         ways of interaction. <b>Static</b> combos can be toggled only from Material Editor, you can't interact with them from C#. <b>Dynamic</b>
         combos, on other hand, can be toggled from code but cannot be changed in Material Editor. 
     </p>
@@ -47,8 +52,8 @@
         Creating a new static combo
     </h2>
     <p>
-        Lets add a static combo to our shader. In last article we've added texture scrolling and tinting. Lets expand our texture tint 
-        functionality by adding a new feature, which will allow tinting the texturing by a mask.
+        Lets add a static combo to your shader. In last article we've added texture scrolling and tinting. Lets expand our texture tint 
+        functionality by adding a new feature, which will allow tinting the texture using a mask.
     </p>
     <p>
         Before adding a static combo, we must add a new feature inside the <string>FEATURES</string> block. This will initialize a new 
@@ -58,11 +63,11 @@
 Feature( F_TINT_BY_MASK, 0..1, "Custom Features" );
     </code></pre>
     <p>
-        This is a special macro that creates a new material feature. Lets see what every argument in it means:
+        This is a special macro that creates a new material feature. Let's see what every argument in it means:
         <ul>
             <li>
                 <b>F_TINT_BY_MASK</b> - this is a variable name. It'll be used both for a static combo, and for displaying the feature's 
-                name in the material editor. It should always start with a <string>F_</string> prefix. (it'll be hidden in editor)
+                name in the material editor. It should always start with a <string>F_</string> prefix. (this prefix will be hidden in editor)
             </li>
             <li>
                 <b>0..1</b> is the range of available choices. 0 will mean "disabled", 1 is "enabled". You can define more than two choices, 
@@ -70,13 +75,14 @@ Feature( F_TINT_BY_MASK, 0..1, "Custom Features" );
             </li>
             <li>
                 <b>"Custom Features"</b> is the group name. Your feature will appear under this group in the material editor. 
+                You can give it any name. 
             </li>
         </ul>
     </p>
     <p>
         Position of stuff that appears in features list is sorted by depending on what was added in the code first. So by adding this feature 
         above the <string>#include</string>, it'll appear above all features added by core shader stuff. There is more functionality to features, 
-        including ways to excluding features, adding rules and other fancy things. This page on <a href="https://wiki.facepunch.com/sbox/AnatomyOfVFX#features">s&box wiki explains</a> all available feature things quite well.
+        including ways to exclude/require features, adding rules and other fancy things. This page on <a href="https://wiki.facepunch.com/sbox/AnatomyOfVFX#features">s&box wiki explains</a> all available feature things quite well.
     </p>
     <p>
         If you've done it right, this feature will appear in the menu, but it won't do anything yet. We must now create a new static combo 
@@ -122,7 +128,7 @@ StaticCombo( S_TINT_BY_MASK, F_TINT_BY_MASK, Sys( ALL ) );
     <p>
         Unlike traditional if-statements, these ones have a slightly different syntax. Instead of brackets, they always start with 
         <string>#if ( CONDITION )</string> and end with <string>#endif</string>. Inside the macro, you're using <string>Linear</string>
-        instead of sRGB like with a color map, because tint map is usually <b>grayscale</b>, which is represented by a single float vector,
+        instead of sRGB, because tint map is usually <b>grayscale</b>, which is represented by a scalar float value,
         and we don't need to use sRGB color space for it. Also hence why it's "Default()" instead of "Default3()" now. 
     </p>
     <p>
@@ -215,8 +221,8 @@ return float4( MyTexture.rgb, 1 );
     <p>
         There's one important thing to note about static combos. While they're helpful with wrapping extra functionality and different
         rendering methods behind shader variants, it also increases the compilation time. While it won't be a problem if you have just 
-        a few combos, adding too many features can compilation time hilariously long, due to a big amount of shader variants s&box 
-        has to compile for you. So be aware what really needs to be wrapped behind a combo, and use <a href="https://wiki.facepunch.com/sbox/AnatomyOfVFX#example">feature rules</a>
+        a few combos, adding too many features can make compilation time hilariously long, due to a big amount of shader variants s&box 
+        has to compile for you. So be aware of what really needs to be wrapped behind a combo, and use <a href="https://wiki.facepunch.com/sbox/AnatomyOfVFX#example">feature rules</a>
         to exclude some features between each other, this will help with reducing amount of combos. 
     </p>
     <p>
@@ -237,14 +243,14 @@ DynamicCombo( D_OVERRIDE_COLOR, 0..1, Sys( ALL ) );
     <p>
         They must start with a <string>D_</string> prefix. Second argument, just like with features, indicates how many options 
         this combo has. More options also means more shader variants. You don't have to add anything in <string>FEATURES</string> section, 
-        this is the only thing you need to implement a new dynamic combo.
+        this line is the only thing you need to implement a new dynamic combo.
     </p>
     <p>
-        Inside your code, dynamic combos are applied exactly the same way as with static combos. 
+        Inside of your code, dynamic combos are applied exactly the same way as with static combos. 
     </p>
     <p>
         To toggle dynamic combos, you must set the value for given combo through <string>RenderAttributes</string> in C# code. 
-        It can be done either globally through scene, or by accessing attributes of specific GameObject's SceneModel. It feels like
+        It can be done either globally through scene, or by accessing attributes of GameObject's SceneModel. It feels like
         RenderAttributes deserve some attention, so I'll explain how to control dynamic combos in the next article.  
     </p>
 
