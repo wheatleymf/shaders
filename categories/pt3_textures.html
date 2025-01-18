@@ -59,14 +59,19 @@ CreateInputTexture2D( AlbedoMap, Srgb, 8, "", "_color", "My Material,10/10", Def
                 <b>AlbedoMap</b> is a name of our input slot. It can be anything.
             </li>
             <li>
-                <b>sRGB</b> is a color space we choose for this texture. Generally, you may want to use sRGB for color maps like albedo,
+                <b>sRGB</b> is the texture's <b>color space</b> we choose for this texture. Generally, you may want to use sRGB for color maps like albedo,
                 since it'll result in displaying texture colors the same way as you see them in other programs. For other maps that require 
                 precision, like <i>normal map</i>, <i>ambient occlusion</i>, <i>roughness</i>, any other custom map, etc. you should use 
                 <b>Linear</b> instead.
+
+                <p>
+                    <a href="https://threejs.org/docs/#manual/en/introduction/Color-management">Three.JS docs have a nice little explanation</a>
+                    on the meaning and purpose of color spaces, if you're really curious about the difference between linear and sRGB. 
+                </p>
             </li>
             <li>
                 <b>8</b> means <i>8-bit depth</i>, or <i>precision</i>. Usually you don't need more than 8, unless you have a very specific case 
-                like a normal map with 16-bit precision. (they're also heavier, keep this in mind)
+                like a normal map with 16-bit precision. (but higher-precision maps are also significantly larged in file size, keep that in mind)
             </li>
             <li>
                 <b>""</b> is supposed to be a compression format, but I'll be honest here, I don't know what the fuck is it doing here specifically. You probably should 
@@ -107,13 +112,16 @@ Texture2D g_tColor < Channel( RGB, Box( Color ), Srgb ); OutputFormat( BC7 ); Sr
         Let's look what's inside of this annotation, and what every thing in it means. It's very simple, lets start with <string>Channel( RGB, Box( AlbedoMap ), Srgb );</string>.
         <ul>
             <li>
-                <b>RGB</b> - selects which channels will be filled with contents of a selected texture input slot. Since we're creating a Texture2D
-                for our albedo (color) map, which utilizes all three channels - red, green and blue - we're specifying RGB in this argument.
-                For future reference, if you're adding a grayscale map like <i>Roughness Map</i> or <i>Ambient Occlusion</i>, it utilizes one channel,
-                so you can select any channel for it. It's kind of like storing and swizzling float vector components! 
+                <b>RGB</b> - points which channels will be utilized to store the color data from your texture input. Since albedo map 
+                is a color map that uses red, green and blue, you can type here "RGB".
+                <p>
+                    Here's an example: if you have a texture map like roughness, that is grayscale (which means it uses just one color channel),
+                    you can specify just any single channel in this argument. Something like <string>Channel( B, Box( Roughness ), Linear );</string>.
+                    You can set any combination of channels (<string>RG</string>), it's like combining and swizzling float components. 
+                </p>
             </li>
             <li>
-                <b>Box( AlbedoMap )</b> - select which texture input slot we should copy into our new Texture2D. Name inside this argument must 
+                <b>Box( AlbedoMap )</b> - select which texture input slot we should copy into your new Texture2D. Name inside this argument must 
                 match the name of your texture input.
             </li>
             <li>
@@ -174,7 +182,7 @@ PS
 
     <h2>Sampling</h2>
     <p> 
-        We need to sample our new texture inside fragment shader. This is where our data fron <string>PixelInput</string> will in come handy!
+        We need to sample our new texture inside fragment shader. This is where our data fron <string>PixelInput</string> will come in handy!
         Before that, lets take a very quick look on the <a href="https://docs.facepunch.com/s/sbox-dev/doc/default-vertex-and-pixel-shader-inputs-WAuOKVmkZ5">structure</a> of <string>PixelInput</string> before we continue.
 
         <ul>
@@ -187,7 +195,7 @@ PS
             </li>
             <li>
                 <string>float2 vTextureCoords</string> - <b>texture coordinates (aka UVs) of your mesh</b>. Model UVs are set up by artists 
-                in any model editing program of their choice, this is an extremely common process, so I assume you're working with a mesh
+                in any model editing program of their choice, this is a really common process, so I assume you're working with a mesh
                 that has UV set up already.<br><br>
 
                 Texture coordinates are set in 2D space, so it uses a float vector with two components. They're set in <b>[0-1]</b> range,
@@ -332,27 +340,28 @@ float TextureScale < UiType( Slider ); Range( 0, 5 ); Default( 1 ); UiGroup("My 
                 we have only Slider - which should be enough anyway.
             </li>
             <li>
-                <b>Range( 0, 5 )</b> - limits on available values for this variable. You can't set this variable to anything beyond this range.
+                <b>Range( 0, 5 )</b> - clamps values within this range. In Material Editor, you won't be able to make these values 
+                go beyond this range. 
             </li>
             <li>
-                <b>Default( 1 )</b> - default value for this variable. It'll be automatically assigned when creating a new material. 
+                <b>Default( 1 )</b> - default value for this variable. It'll be automatically set to this property when creating a new material. 
             </li>
             <li>
                 <b>UiGroup("My Material,10/11")</b> - works the same way as for texture inputs. In this case, we're setting second value at 
-                <string>11</string>, which means it'll appear right after the texture input slot.
+                <string>11</string> - since this is the order of properties, it'll appear right after the texture input variable. 
             </li>
         </ul>
     </p>
     <p>
         Now, lets make our code a bit more flexible for changes. In future, we'll be sampling more than one texture in our shader. 
         Typing out <string>i.vTextureCoords</string> in every <string>.Sample()</string> is probably a bad practice if you intend to add 
-        more control over the UVs, like right now. Instead, you can create a new <string>float2</string> variable, and reference texture coords in there.
+        more control over the UVs. Instead, you can create a new <string>float2</string> variable, and use it when sampling textures. 
     </p>
     <pre><code class="language-hlsl">
 float2 uv = i.vTextureCoords;
     </code></pre>    
     <p>
-        Very nice. To adjust the scale of our texture, we just have to multiply it by our new float variable. Lets add it into the variable definition.
+        Very nice. To adjust the scale of your texture, we just have to multiply it by our new float variable. Lets add it into the variable definition.
     </p>
     <pre><code class="language-hlsl">
 float2 uv = i.vTextureCoords * TextureScale;
@@ -425,13 +434,13 @@ float2 TextureScrollSpeed < UiType( Slider ); Range2( 0, 0, 4, 4 ); Default2( 1,
         As you have noticed, first variable is set to limit values in <string>[-1 - 1]</string> range. This way we can set our texture 
         move not only towards positive X/Y axis, but also go into opposite direction. Why is it set to <string>int2</string> vector, why not 
         stick with float? You can replace it with a float2 vector, but this variable just defines the moving direction, actual intensity of 
-        texture scrolling towards given direction can be set by adjusting the scroll speed.
+        texture scrolling towards given direction can be controlled by the scroll speed variable.
     </p>
     <p>
         Scroll speed variable also uses <string>float2</string>. This way you can set scrolling speed for each axis. What about
-        <string>Range2</string> and <string>Default2</string>, where did they come from? As for float components, depending on which type 
-        of a float vector you're using, you'll need to use appropriate annotations for them. Since you are currently implementing a <string>float2</string>
-        variable, for defining the range and default value you must add <string>2</string> to annotation's name. 3 for float3, 4 for float4. 
+        <string>Range2</string> and <string>Default2</string>, where did they come from? Depending on how many components your vector variable
+        has, you'll need to use appropriate annotations for them. Since you are currently implementing a <string>float2</string>
+        vector, you must add <string>2</string> to annotation's name. 3 for float3, 4 for float4. 
     </p>
     <p>
         First pair of arguments in <string>Range2</string> are the minimum value. Second pair is the maximum. So by setting it to <string>-1, -1, 1, 1</string>,
@@ -467,6 +476,11 @@ uv += g_flTime * TextureScrollSpeed * TextureScrollDirection;
                 <string>g_vCameraPositionWs</string> is a <b>float3</b> vector that represents world position of your current camera.
                 It's always the position of your <i>main</i> camera, that currently renders everything. <b>Ws</b>
                 in this name stands for "world space".
+
+                <p>
+                    Here's one example: if you'd like to get the world-space position of the pixel, 
+                    you can do <string>i.vPositionWithOffsetWs.xyz + g_vCameraPositionWs.xyz</string>. 
+                </p>
             </li>
             <li>
                 <string>g_vCameraDirWs</string> is also a <b>float3</b> vector that represents the camera direction. It is often used for
@@ -496,7 +510,7 @@ uv += g_flTime * TextureScrollSpeed * TextureScrollDirection;
 float3 TextureTint < UiType( Color ); Default3( 1, 1, 1 ); UiGroup( "My Material,10/12" ); >;
     </code></pre>
     <p>
-        This time you're adding a variable with a <string>UiType</string> of <b>Color</b> instead of "Slider". This is extremely useful 
+        This time you're adding a variable with a <string>UiType</string> of <b>Color</b> instead of "Slider". This is very useful 
         when we need just to define a solid color. Since this isn't a slider, we don't need set up <string>Range3</string> either.
         Now move to the <string>MainPs</string> function, find the line where you're sampling the albedo map, and at the end of this 
         line multiply the texture by <string>TextureTint</string> variable:
