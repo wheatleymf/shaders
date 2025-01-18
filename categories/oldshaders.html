@@ -1,0 +1,196 @@
+<article-header
+    name="Relics of the Past"
+    icon="skull"
+    category="references"    
+></article-header>
+<div class="Article">
+    <p>
+        s&box is almost 4 years old. Shaders API have changed a lot since then. If you've done some research on shaders and tried
+        to find something useful in s&box discord, you probably noticed that older messages have mentions of various API things 
+        that are no longer used. 
+    </p>
+    <p>
+        If you're backporting an old shader and making it compatible with modern s&box, this article should help with converting 
+        some old bits into modern API.
+    </p>
+
+    <h2>Tex2DS and CreateTexture2D</h3>
+    <p>
+        You may still stumble upon this stuff from time to time. Back when Source 2 was compiling for multiple platforms like DX9 and 
+        DX11, devs had to use special macros for sampling and defining Texture2D. Now, when s&box is using Vulkan and lots of graphics 
+        backend in Source 2 is probably better than it was pre-s&box, you can interact with textures with less macros, and more 
+        native HLSL syntax. 
+    </p>
+
+    <h3>Defining Textures</h3>
+    <p>
+        This is how old shaders used to create new Texture2D objects out of input slots:
+    </p>
+    <pre><code class="language-hlsl">
+CreateTexture2DWithoutSampler( g_tColor ) < Channel( RGB, Box( Color ), Srgb ); OutputFormat( BC7 ); SrgbRead( true ); >;
+    </code></pre>
+    <p>
+        These days, you can just do this using native HLSL:
+    </p>
+    <pre><code class="language-hlsl">
+Texture2D g_tColor < Channel( RGB, Box( Color ), Srgb ); OutputFormat( BC7 ); SrgbRead( true ); >; 
+    </code></pre>
+    <p>
+        <string>CreateTexture2DWithoutSampler()</string> macro literally does the same thing as declaring Texture2D directly. 
+        There's no point in using it nowadays. Notice that annotation remains unchanged. There's one big upside of using native 
+        HLSL over built-in macros: this makes learning HLSL a bit easier. 
+    </p>
+    <p>
+        There was also another macro, <string>CreateTexture2D</string> - it handled both Texture2D declaration, and also sets up the 
+        sampler for this texture. 
+    </p>
+    <pre><code class="language-hlsl">
+CreateTexture2D( g_tOverlayTexture ) < Attribute( "Texture" ); SrgbRead( true ); Filter( ANISOTROPIC ); >;
+    </code></pre>
+    <p>
+        These days you can just declare and set up the sampler state yourself. This is how this implementation of <b>g_tOverlayTexture</b>
+        with anisotropic sampler would look like using native HLSL: 
+    </p>
+    <pre><code class="language-hlsl">
+SamplerState some_filter < Filter( Anisotropic ); >;
+Texture2D g_tOverlaytexture < Attribute( "Texture" ); SrgbRead( true ); >;
+    </code></pre>
+
+    <h3>Reasoning</h3>
+    <p>
+        All these macros existed during earlier days of Source 2. These days s&box no longer uses DX11 for rendering, and that made 
+        these macros somewhat obsolete. They still exist and they're still working, but in the future they may be possibly removed
+        (although not confirmed). 
+    </p>
+    <p>
+        There's no reason to avoid using as much native HLSL syntax as possible. Using old macros can add up additional confusion 
+        for beginners because they would have to search the internet to find out what every macro does.  
+    </p>
+
+    <h3>Sampling Textures</h3>
+    <p>
+        There was also a special macro for sampling the texture inside of <string>MainPs</string> function:
+    </p>
+    <pre><code class="language-hlsl">
+Tex2DS( g_tColor, g_sAniso, i.vTextureCoords.xy ).rgb; 
+    </code></pre>
+    <p>
+        It does the same thing as <string>Texture.Sample</string>, except with an additional layer of confusing bullshit that you 
+        would have to guess if you couldn't search up anything online. This is how it's done now:
+    </p>
+    <pre><code class="language-hlsl">
+g_tColor.Sample( g_sAniso, i.vTextureCoords.xy ).rgb;
+    </code></pre>
+    <p>
+        There's a number of other functions like <b>Tex2DLevel</b>, <b>Tex2DGrad</b> and etc.. they're all still valid, however
+        there's no reason not to use sampler functions that come with <a href="https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/sm5-object-texture2d">Texture2D object</a>, which is part of the more modern HLSL 
+        I think. 
+    </p>
+
+    <h2>ToolsVis mode</h2>
+    <p>
+        In late 2024, <string>ToolsVis</string> and some other related rendering modes have been removed. Now, tools visualization 
+        is handled through shading model (I think) and this mode will not work anymore. Here's how old shaders implemented ToolsVis:
+    </p>
+    <pre><code class="language-hlsl">
+ToolsVis( S_MODE_TOOLS_VIS ); 									
+ToolsWireframe( "vr_tools_wireframe.vfx" ); 					
+ToolsShadingComplexity( "vr_tools_shading_complexity.vfx" )
+    </code></pre>
+    <p>
+        Nowadays, you just have to remove these references from <string>MODES</string> section altogether. 
+    </p>
+
+    <h2>Multiview</h2>
+    <p>
+        In earlier days, s&box has been using multiview which was necessary for VR rendering, as far as I know. It came with a number 
+        of special variables and functions that were made for multiview specifically. 
+    </p>
+    <pre><code class="language-hlsl">
+#if ( D_MULTIVIEW_INSTANCING )
+    GetViewAndSubview( i.nInstanceID, nView, nSubview );
+    o.nView = nView;
+#endif
+    </code></pre>
+    <p>
+        None of this shit exists anymore. If you see any functions or variables with "multiview" in the name, remove it. Shaders 
+        are working in VR the same way as in non-VR mode. According to Facepunch, maintaining multiview was painful in the shape it was.
+    </p>
+
+    <h2>Old Material & Shading API</h2>
+    <p>
+        Shading and material API went under a number of changes since 2021. These days it's significantly more simple to use, 
+        and internally shading model went through a huge number of changes.  
+    </p>
+
+    <h3>Material API</h3>
+    <p>
+        Previously, material class had a different function name that would initialize new Material object in your shader code:
+    </p>
+    <pre><code class="language-hlsl">
+Material m = GatherMaterial( i );
+    </code></pre>
+    <p>
+        Now material class can be defined using <string>Material::Init()</string> or <string>Material::From( i )</string>. 
+    </p>
+
+    <h3>Old Shading Model API</h3>
+    <p>
+        In older shaders, if you had to shade the pixel using your material object and pixel input struct, you would have to this:
+    </p>
+    <pre><code class="language-hlsl">
+// Create and initialize a variable with Material class
+Material mat = mat.GatherMaterial( i );
+m.Albedo = some_texture_blahblah.rgb;
+
+// Initialize a variable with the ShadingModelValveStandard class, then finalize pixel material
+ShadingModelValveStandard sm;
+return FinalizePixelMaterial( i, m, sm );
+    </code></pre>
+    <p>
+        Now, shading model has been renamed to <string>ShadingModelStandard</string>, and it is much simpler to use. There's no 
+        <string>FinalizePixelMaterial</string> anymore, instead there's a method called <string>::Shade()</string> in the standard 
+        shading model. 
+    </p>
+    <p>
+        This is how code snipper above would've been done with modern API:
+    </p>
+    <pre><code class="language-hlsl">
+Material m = Material::Init();
+m.Albedo = some_texture_blahblah.rgb;
+
+return ShadingModelStandard::Shade( i, m );
+    </code></pre>
+
+    <h2>INSTANCED_SHADER_PARAMS</h2>
+    <p>
+        Previously, you had to include <string>INSTANCED_SHADER_PARAMS</string> into the input for <string>MainVs</string> function.
+    </p>
+    <pre><code class="language-hlsl">
+PixelInput MainVs( INSTANCED_SHADER_PARAMS( VertexInput i ) )
+{
+    // ...
+}
+    </code></pre>
+    <p>
+        You don't need this anymore. Instead, just refer VertexInput data directly. 
+    </p>
+    <pre><code class="language-hlsl">
+PixelInput MainVs( VertexInput i )
+{
+    // ...
+}
+    </code></pre>
+
+    <h2>Old Depth Mode</h2>
+    <p>
+        Some old shaders define <string>Depth</string> with a reference to a .vfx file. It looks like this:
+    </p>
+    <pre><code class="language-hlsl">
+Depth( "vr_depth_only.vfx" );
+    </code></pre>
+    <p>
+        These days, you can just do <string>Depth()</string>, or <string>Depth( S_MODE_DEPTH )</string> if you want to perform 
+        any specific operations during the depth prepass. 
+    </p>
+</div>
