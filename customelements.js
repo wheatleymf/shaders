@@ -67,6 +67,7 @@ class ArticleHeader extends HTMLElement {
         icondiv.classList.add("icon");
         let iconspan = document.createElement("span");
         iconspan.classList.add("material-symbols-sharp");
+        iconspan.classList.add("notranslate");
 
         let datadiv = document.createElement("div")
         datadiv.classList.add("description");
@@ -101,6 +102,36 @@ class ArticleRef extends HTMLElement {
     }
 }
 
-customElements.define("download-file", DownloadElement);
-customElements.define("article-header", ArticleHeader);
-customElements.define("article-ref", ArticleRef );
+class NavigationItem extends HTMLElement {
+    constructor()
+    {
+        super();
+
+        let internalName = this.getAttribute( "link" );
+        let icon = this.getAttribute( "icon" );
+
+        let a = document.createElement( "a" );
+        let span = document.createElement( "span" );
+        span.classList.add( "material-symbols-sharp" );
+        span.classList.add( "notranslate" );
+        span.textContent = icon;
+
+        let displayname = document.createElement( "k" ); // this isn't real lol
+        displayname.textContent = this.textContent;
+
+        this.innerHTML = '';
+        this.appendChild( span );
+        this.appendChild( displayname );
+
+        this.setAttribute( "category", internalName );
+        this.onclick = function() {
+            DisplayCategory( internalName );
+        }
+
+    }
+}
+
+customElements.define( "download-file", DownloadElement );
+customElements.define( "article-header", ArticleHeader );
+customElements.define( "article-ref", ArticleRef );
+customElements.define( "nav-item", NavigationItem);
