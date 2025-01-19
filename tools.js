@@ -57,6 +57,34 @@ function UpdateLoader( status, callerObject = undefined )
     }
 }
 
+
+function ToggleTheme()
+{
+
+}
+
+let Theme = {
+    _UpdateState: function( themename ) {
+        document.documentElement.classList.toggle( themename );
+        document.body.classList.toggle( themename );
+    },
+    Toggle: function() {
+        let doc = document.documentElement;
+
+        this._UpdateState( "night" );
+    
+        localStorage.setItem( "nighttheme", doc.classList.contains( "night" ) );
+    },
+    Restore: function() {
+        let val = localStorage.getItem( "nighttheme" );
+        console.log( val );
+
+        // Wow this is bad
+        if (val == "true")
+            this.Toggle();
+    }
+}
+
 // 
 // Update classes for the elements in sidebar navigation to indicate
 // which page is currently being read
@@ -367,5 +395,6 @@ let RequiresEntry = ReadQuery();
 if ( !RequiresEntry )
     DisplayCategory( "welcome" );
 
+Theme.Restore();
 MonitorQueryUpdates();
 
