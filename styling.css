@@ -95,7 +95,7 @@ body {
     color: var(--pal-header);
     font-weight: 700;
 }
-.navigation a {
+.navigation nav-item {
     display: flex;
     align-items: center;
     color: var(--pal-text);
@@ -104,21 +104,20 @@ body {
     line-height: 36px;
     font-weight: 600;
 }
-    .navigation a:last-child
+    .navigation nav-item:last-child
     {
         margin-bottom: 32px;
     }
-.navigation a span {
+.navigation nav-item span {
     margin-right: 16px;
 }
-.navigation a:hover {
+.navigation nav-item:hover {
     background: var(--pal-nav-currentarticle-bg);
     color: var(--pal-nav-currentarticle-text);
     cursor: pointer;
 }
 
-
-.navigation a.pending {
+.navigation nav-item.pending {
     border: 3px solid var(--pal-header);
 
     animation-name: loading;
@@ -126,7 +125,7 @@ body {
     animation-iteration-count: infinite;
 }
 
-.navigation a.currentCategory {
+.navigation nav-item.currentCategory {
     background: var(--pal-nav-currentarticle-bg);
     color: var(--pal-nav-currentarticle-text);
     user-select: none;
