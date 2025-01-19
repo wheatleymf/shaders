@@ -588,7 +588,7 @@ a.dl {
 {
     position: absolute;
     right: 32;
-    bottom: 32;
+    top: 32;
     background: var(--pal-header);
     padding: 10 25;
     color: var(--pal-bg);
