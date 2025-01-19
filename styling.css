@@ -5,6 +5,7 @@
     box-sizing: border-box;
 }
 
+/* Default theme */
 :root {
     --pal-bg: #E5EAF0;
     --pal-medium: #28332e;
@@ -13,8 +14,43 @@
     --pal-darker: #1a1e1c;
     --pal-sf: #0046FB;
 
+    --pal-article-text: #323947;
+
     /* Custom blocks */
     --pal-warning:#ea1a1a;
+
+    --pal-string-bg: #e5eaf0;
+    --pal-string-text: #323947;
+
+    --pal-nav-currentarticle-bg: white;
+    --pal-nav-currentarticle-text: #0046FB;
+}
+
+/* 
+    Night mode 
+    This isn't clean, but I guess that's the consequences of treating night mode as an afterthought 
+*/
+
+html.night {
+    --pal-bg: #181b1e;
+    --pal-medium: #28332e;
+    --pal-text: #5b6c7e;
+    --pal-header: #e3e3e3;
+    --pal-darker: #2d3b34;
+    --pal-sf: #396ef8;
+
+    --pal-article-text: #ccd6e2;
+
+    --pal-warning: #ea1a1a;
+
+    --pal-string-bg: #181b1e;
+    --pal-string-text: #6477a6;
+
+    --pal-nav-currentarticle-bg: #5b6c7e;
+    --pal-nav-currentarticle-text: #181b1e;
+}
+body.night {
+    background: #0e0e10;
 }
 
 body {
@@ -76,8 +112,8 @@ body {
     margin-right: 16px;
 }
 .navigation a:hover {
-    background: white;
-    color: var(--pal-sf);
+    background: var(--pal-nav-currentarticle-bg);
+    color: var(--pal-nav-currentarticle-text);
     cursor: pointer;
 }
 
@@ -91,9 +127,8 @@ body {
 }
 
 .navigation a.currentCategory {
-    background: white;
-    color: var(--pal-sf);
-    /* text-indent: 30; */
+    background: var(--pal-nav-currentarticle-bg);
+    color: var(--pal-nav-currentarticle-text);
     user-select: none;
     cursor: default;
 }
@@ -186,7 +221,7 @@ body {
 
 .contents 
 {
-    color: var(--pal-header);
+    color: var(--pal-article-text);
     font-weight: 400;
     padding: 64px;
     margin-left: 380px;
@@ -334,8 +369,8 @@ body {
 .contents string {
     display: inline-block;
     font-family: 'JetBrains Mono', monospace;
-    background: #e5eaf0;
-    color: #323947;
+    background: var(--pal-string-bg);
+    color: var(--pal-string-text);
     padding: 0 10;
     margin: 0 3;
 }
@@ -363,7 +398,6 @@ body {
     background: white;
     box-shadow: 0px 0px 32px rgba(0, 0, 0, 0.3);
 }
-
 
 /* DOWNLOAD SECTION */
 
@@ -504,6 +538,25 @@ a.dl {
     padding-left: 104px;
     text-align: justify;
 }
+
+/* Theme Switcher */
+.switch {
+    position: fixed;
+    z-index: 999;
+    right: 32px;
+    bottom: 32px;
+    background: var(--pal-bg);
+    color: var(--pal-header);
+    padding: 12px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all .12s ease-in-out;
+    user-select: none;
+}
+    .switch:hover {
+        color: white;
+        background: var(--pal-sf);
+    }
 
 /* LOADER SHIT */ 
 
