@@ -570,6 +570,8 @@ a.dl {
     width: 300%;
     content: "Switch theme";
     color: white;
+    user-select: none;
+    pointer-events: none;
     background: var(--pal-sf);
 
     opacity: 0;
