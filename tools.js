@@ -57,12 +57,6 @@ function UpdateLoader( status, callerObject = undefined )
     }
 }
 
-
-function ToggleTheme()
-{
-
-}
-
 let Theme = {
     _UpdateState: function( themename ) {
         document.documentElement.classList.toggle( themename );
@@ -79,6 +73,8 @@ let Theme = {
         let val = localStorage.getItem( "nighttheme" );
 
         // Wow this is bad
+        // In my defense, looks like local storage writes shit as strings, 
+        // i'll see if I can make values be treated as proper types
         if (val == "true")
             this.Toggle();
     }
