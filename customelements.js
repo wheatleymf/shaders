@@ -21,6 +21,7 @@ class DownloadElement extends HTMLElement {
         icondiv.classList.add("icon");
         const iconSpan = document.createElement("span");
         iconSpan.classList.add("material-symbols-sharp");
+        iconSpan.classList.add("notranslate");
         iconSpan.textContent = icon;
         icondiv.appendChild(iconSpan);
 
