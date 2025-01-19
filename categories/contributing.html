@@ -38,20 +38,28 @@
 
     <h3>Adding into Navigation</h3>
     <p>
-        You have to manually insert this article into the navigation. It is located in <string>index.html</string>. Pick an appropriate category, and insert following code:
+        Navigation items on implemented using a custom tag <string>nav-item</string> on <string>index.html</string>.
+        Put in appropriate category list and add this:
     </p>
     <pre><code class="language-html">
-&lt;a category=&quot;YOUR_ARTICLE_HTML_NAME&quot; onclick=&quot;DisplayCategory(&#39;YOUR_ARTICLE_HTML_NAME&#39;)&quot;&gt; 
-    &lt;span class=&quot;material-symbols-sharp&quot;&gt;INSERT_ICON_NAME_HERE&lt;/span&gt; Article's name 
-&lt;/a&gt;
+&lt;nav-item icon=&quot;auto_read_pause&quot; link=&quot;pt0start&quot;&gt;Before You Start&lt;/nav-item&gt;
     </code></pre>
     <info>
         If you're creating a new category, you have to insert it in the list as well. If you have just one article to submit, it's probably 
         not worth dedicating a new category for it yet. This will be figured out in the pull request. 
     </info>
     <p>
-        Most important thing here is making sure that it refers the correct HTML page name in <string>YOUR_ARTICLE_HTML_NAME</string>.
-        If you do something wrong, this page will not load properly. 
+        Text inside of the nav-item tag will define the displaying name of this article.
+        <ul>
+            <li>
+                <string>icon</string> will set the displaying icon for this article. Make sure it matches tne icon in the
+                article itself. Icon must fit the name defined by Material Icons.
+            </li>
+            <li>
+                <string>link</string> is the <b>internal</b> name of your article. It must match the name of your HTML file. 
+                So if it's called <b>pt5_attributes.html</b>, you put <b>pt5_attributes</b> in here.
+            </li>
+        </ul>
     </p>
 
     <h2>Page Markdown</h2>
