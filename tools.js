@@ -77,7 +77,6 @@ let Theme = {
     },
     Restore: function() {
         let val = localStorage.getItem( "nighttheme" );
-        console.log( val );
 
         // Wow this is bad
         if (val == "true")
