@@ -9,8 +9,11 @@ I'll be glad to accept any fixes, improvements, clarifications and new articles/
 
 HTML pages use some custom tags to make some special content like download buttons and article headers much easier to maintain: see ["Contributing"](https://shaders.wheatleymf.net/?entry=contributing) for all details. 
 
-## Pending Issues
-- This website layout will not work from phones at all. It will be horrible. Sometime in the future I will focus on making the layout significantly more mobile-friendly.
-- There's no material about compute and geometry shaders at the moment.
-- Page loading could be improved, you may see icon names before they're properly loaded on page.
-- Backend still needs a lot of work and better automation, especially index navigation.
+## Issues
+- **Acknowledged:**
+- - Pages may look off/broken. Website is still going through bunch of significant styling and layout changes, so this can break pages if you have old version cached. `Ctrl`+`F5` should reset the cache. 
+- **Pending:**
+- - This website layout will not work from phones at all. It will be horrible. Sometime in the future I will focus on making the layout significantly more mobile-friendly.
+- - There's no material about compute and geometry shaders at the moment.
+- - Page loading could be improved, you may see icon names before they're properly loaded on page.
+- - Backend still needs a lot of work and better automation, especially index navigation.
