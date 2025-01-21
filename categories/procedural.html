@@ -1,0 +1,446 @@
+<article-header
+    name="Procedural Noises & Shapes"
+    icon="graphic_eq"
+    category="references"    
+></article-header>
+<div class="Article">
+    <p>
+        s&box comes with a little code library that has bunch of functions to generate few noises types and shapes. 
+        This isn't an article explaining noises in general, but features that come with this library.
+    </p>
+    <p>
+        I believe that some of these functions are utilized by shadergraph, however there's nothing stopping you from 
+        using it in your code too. 
+    </p>
+    
+    <h2>Overview</h2>
+    <h3>Noises</h3>
+    <p>
+        Here's a list of all available functions within this library, and short description of what are they doing. 
+        <ul>
+            <li>
+                <string>FuzzyNoise()</string> returns a <b>float</b> value representing noise, visually very 
+                similar to static TV noise. 
+            </li>
+            <li>
+                <string>FuzzyNoise2D()</string> returns a <b>float2</b> value representing the same TV-static noise
+                as function above, except it is two-dimensional now. 
+            </li>
+            <li>
+                <string>FuzzyNoiseWithOffset()</string> returns a <b>float2</b> with the same 2D fuzzy noise, except you can offset 
+                the values if it's necessary.
+            </li>
+            <li>
+                <string>ValueNoise()</string> returns a <b>float</b> value representing a more traditional kind of noise, 
+                using four fuzzy noise values from each corner of given UVs and then interpolating the values between. 
+            </li>
+            <li>
+                <string>Simplex2D()</string> returns a <b>float</b> value that represents <b>simplex noise</b>.
+            </li>
+            <li>
+                <string>VoronoiNoise()</string> returns a <b>float</b> that represents <b>voronoi noise</b>. This function allows 
+                adjusting angle and density through separate arguments. 
+            </li>
+        </ul>
+    </p>
+    <h3>Shapes</h3>
+    <p>
+        <ul>
+            <li>
+                <string>Checkboard()</string> returns a <b>float</b> value that represents a checkboard pattern, mapped onto 
+                given UV coordinates. 
+            </li>
+            <li>
+                <string>Circle()</string> returns a <b>float</b> value that represents a circle shape, which will be drawn in the middle 
+                of given UV coordinates, where circle size is defined by the second argument.
+            </li>
+            <li>
+                <string>Ellipse()</string> does the same thing as function above, but just under a different function name. 
+            </li>
+            <li>
+                <string>Square()</string> returns a <b>float</b> value that represents a sqaure shape, which will be drawn in the middle 
+                of given UV coordinates, where square size is defined by the second argument. 
+            </li>
+            <li>
+                <string>Rect()</string> has the same functionality as <string>Square</string>. 
+            </li>
+        </ul>
+    </p>
+    <h3>UV Helpers</h3>
+    <p>
+        There's also bunch of helper functions for UV if you don't want to manage it yourself.
+        <ul>
+            <li>
+                <string>TileUv</string> adjusts the UV scale. Values closer to 0 will make textures (that are sampled using this 
+                UV value) appear larger, while smaller will make them appear smaller and repeated.
+            </li>
+            <li>
+                <string>OffsetUv</string> will offset the UV in given direction. It takes offset value as a <b>float2</b> vector, 
+                allowing to have control over offset on both UV axis. 
+            </li>
+            <li>
+                <string>TileAndOffsetUv</string> does both tiling and offset like above, but combined in a single function. 
+            </li>
+            <li>
+                <string>PolarCoordinates</string> returns <b>float2</b> value with given UV coordinates wrapped into 
+                <b>polar</b> coordinate system. This can be later used as transformed UV for sampling texture, noises or anything else.
+            </li>
+        </ul>
+    </p>
+
+    <h3>PI Values</h3>
+    <p>
+        This library also defines following variations of <b>Pi</b> value:
+        <ul>
+            <li>
+                <string>M_PI2</string>: double PI, <b>6.28318530717958647692</b>
+            </li>
+            <li>
+                <string>M_INVPI</string>: inverse PI, <b>0.31830988618379067154</b>
+            </li>
+            <li>
+                <string>M_INV2PI</string>: inverse double PI, <b>0.15915494309189533577</b>
+            </li>
+        </ul>
+    </p>
+    <p>
+        Once this library is imported in your shader code, you should be able to reference these value definitions.
+    </p>
+
+    <h2>Noise Functions</h2>
+    <p>
+        Now let's properly review all available noise functions in-depth, and see how they affect the visuals. 
+        For this article, I will be using a primitive unlit shader where noise function is directly returned as a final pixel. 
+    </p>
+    <p>
+        If you want to see how noise functions appear in your shader, this is the simplest way you can do it:
+    </p>
+    <pre><code class="language-hlsl">
+float noise = SomeKindofNoise( i.vTextureCoords.xy + g_flTime );
+return float4( noise.xxx, 1 ); 
+    </code></pre>
+
+    <h3>Fuzzy Noise</h3>
+    <p>
+        Fuzzy Noise visually looks like static TV noise. It is one of the cheapest noises available in this code library, 
+        but also visually primitive too; this isn't that kind of noise you saw in advanced shaders like water or clouds in the web. 
+    </p>
+    <pre><code class="language-hlsl">
+FuzzyNoise( float2 vUv, float2 vDot = float2(12.9898f, 78.233f) )
+    </code></pre>
+    <p>
+        <ul>
+            <li>
+                <string>vUv</string> are the UV values you should put into this noise. It will define how this noise will be mapped 
+                on given surface. UV accuracy isn't very important for this type of noise because they're returning an unique 
+                noise value per-pixel.
+            </li>
+            <li>
+                <string>vDot</string> are magic numbers (?) that are already defined, so you can pass only texture coordinates 
+                to get this function working. Think of it as a <b>seed</b> for this noise, where different values result in generating 
+                noise in a different pattern.
+            </li>
+        </ul>
+    </p>
+    <p>
+        To generate fuzzy noise using meshes texture coordinates, do this: 
+    </p>
+    <pre><code class="language-hlsl">
+float fuzzy = FuzzyNoise( i.vTextureCoords.xy ); 
+    </code></pre>
+    <p>
+        This will generate a new fuzzy noise across the UVs. Keep in mind that passing single texture coords without animated 
+        offset/scaling will result in noise texture appearing static, it won't be animated. If you want to make it appear animated, 
+        you can pass <b>g_flTime</b> global variable into the <string>vDot</string> input.  
+    </p>
+    <pre><code class="language-hlsl">
+float fuzzy = FuzzyNoise( i.vTextureCoords.xy, g_flTime ); 
+    </code></pre>
+    <p>
+        As you can see, this noise is so small, it basically generates noise per-pixel. Increasing the UV scale by multiplying 
+        will not work here, but quantizing texture coords will work. 
+    </p>
+    <pre><code class="language-hlsl">
+i.vTextureCoords.xy = floor( 32 * i.vTextureCoords.xy ) / 32;
+float noise = FuzzyNoise( i.vTextureCoords.xy + g_flTime );
+    </code></pre>
+    <p>
+        Increase both values if you want to keep the noise in higher resolution. I am not sure if it's the best way 
+        to do it personally, but in case you need pixelated fuzzy noise specifically, this should work. :-) 
+    </p>
+
+    <video controls autoplay loop>
+        <source src="/media/fuzzynoise.mp4" type="video/mp4">
+    </video>
+
+    <h3>2D Fuzzy Noise</h3>
+    <p>
+        You can also generate fuzzy noise in 2D space. It results the same type of noise, except wrapped in <b>float2</b> vector.
+        It also generates second channel with a different <string>vDot</string> value, so it is visually different than first channel.  
+    </p>
+    <pre><code class="language-hlsl">
+float2 noise = FuzzyNoise2D( float2 UV );
+    </code></pre>
+    <p>
+        Unlike <b>FuzzyNoise</b> function, you can't adjust <string>vDot</string> value for this function. 
+    </p>
+
+    <h3>Fuzzy Noise with Offset</h3>
+    <p>
+        It also returns 2D fuzzy noise, except noise values are multiplied by the offset, wrapped into sin/cos functions and corrected 
+        within the <b>0 to 1</b> range:
+    </p>
+    <pre><code class="language-hlsl">
+float2 noise = FuzzyNoiseWithOffset( float2 UV, float offset );
+    </code></pre>
+    <p>This is how function's code looks inside:</p>
+    <pre><code class="language-hlsl">
+float2 noise = FuzzyNoise2D( vUv );
+return float2(
+    sin(noise.y * flOffset) * 0.5f + 0.5f,
+    cos(noise.x * flOffset) * 0.5f + 0.5f
+);
+    </code></pre>
+    <info>
+        <string>* 0.5f + 0.5f</string> is required to clamp these sin/cos values within the <b>0 to 1</b> range because initially 
+        these functions return values in <b>-1 to 1</b> range instead. In most cases, especially if color output depends on it,
+        this is not preferred due to potential visual errors.   
+    </info>
+    <p>
+        Any value can be used as an offset. If you add <b>g_flTime</b> as offset, then whole dynamic static noise starts to move around 
+        in a much, much smoother fashion, compared to previous implementations. If you increase the speed for <b>g_flTime</b>, this will 
+        also make this gradual noise move faster. 
+    </p>
+    <pre><code class="language-hlsl">
+float noise = FuzzyNoiseWithOffset( i.vTextureCoords.xy, g_flTime * 10 );
+    </code></pre>
+    <video controls autoplay loop>
+        <source src="/media/fuzzynosiewithoffset.mp4" type="video/mp4">
+    </video>
+
+    <h3>Value Noise</h3>
+    <p>
+        Value noise is a relatively primitive type of noise that calculates cells across given UVs, "samples" fuzzy noise values 
+        in 4 corners, calculates average noise for each cell and then interpolates it between each other. As a result, we get a really 
+        simple noise. Returns <b>float</b> value. 
+    </p>
+    <p>
+        It also has slightly higher instruction count. While this isn't a problem for modern hardware probably, just keep in mind that 
+        more detailed noise generators are also utilizing more resources. 
+    </p>
+    <pre><code class="language-hlsl">
+float ValueNoise( float2 uv )
+    </code></pre>
+    <p>
+        This is how value noise looks like with texture coordinates as an input, multiplied by 10 for higher density:
+    </p>
+    <img src="/media/proc_valuenoise.png">
+
+    <h3>2D Simplex Noise</h3>
+    <p>
+        Simplex noise is a gradient noise, which means that depending on input, your noise value smoothly goes higher and lower 
+        in various spots, providing a significantly higher quality noise. Previous noise types mentioned above are definitely 
+        cheaper performance-wise, however, depending on your situation, they may be not perfect or not suitable at all. Returns <b>float</b> value.
+    </p>
+    <pre><code class="language-hlsl">
+float Simplex2D( float2 uv )
+    </code></pre>
+    <p>
+        It has a somewhat triangular shape, however it can be smoothed out if necessary by multiplying the value or iterating 
+        with it anyhow else. 
+        For example, this noise was used for the <article-ref link="pt10_displacement">Vertex Displacement</article-ref> article 
+        as the vertex offset value in one of the samples. 
+    </p>
+    <img src="/media/proc_simplex.png">
+
+    <h3>Voronoi Noise</h3>
+    <p>
+        Voronoi noise, also known as <b>worley noise</b>, returns a <b>float</b> which represents the value at a given coordinate 
+        that corresponds to the distance of the nearest seed, and seed itself is evenly distributed through the region. 
+    </p>
+    <pre><code class="language-hlsl">
+float VoronoiNoise( float2 uv, float angleOffset, float density )
+    </code></pre>
+    <p>
+        <ul>
+            <li>
+                <string>uv</string> are the UV coordinates, as a <b>float2</b> vector,
+            </li>
+            <li>
+                <string>angleOffset</string> adjusts the alignment of those "seed" points across the coordinates. This can be 
+                used for animating the noise movement,
+            </li>
+            <li>
+                <string>density</string> basically affects the scaling of this noise.
+            </li>
+        </ul>
+    </p>
+    <p>
+        If you pass time constant as an angle offset, this will smoothly animate the alignment of points in the noise. Greater 
+        values for density will make the noise texture appear smaller, while lesser numbers will make it appear larger. 
+    </p>
+    <pre><code class="language-hlsl">
+float noise = VoronoiNoise( i.vTextureCoords.xy, g_flTime, 2 );
+    </code></pre>
+    <video controls autoplay loop>
+        <source src="/media/proc_voronoi.mp4" type="video/mp4">
+    </video>
+    
+    <h2>Procedural Shapes</h2>
+    <p>
+        These functions generate realtime patterns and shapes according to given UVs. Most of these functions support adjusting the scale, 
+        and you also can adjust UVs as you wish to change how these shapes/patterns are aligned on the surface.  
+    </p>
+
+    <h3>Checkerboard</h3>
+    <p>
+        Generates a checkerboard pattern on given surface, using UVs and defined frequency. Larger frequency number will increase 
+        the tiling of this pattern. Frequency can be either <b>float</b> or <b>float2</b>, if you want to make frequency of tiles 
+        non-uniform. 
+    </p>
+    <pre><code class="language-hlsl">
+float Checkerboard( float2 Uv, float2 Frequency )
+    </code></pre>
+    <p>
+        Here's an example of a checkboard that generates with frequency of 3 on axis X, and 10 on axis Y. 
+    </p>
+    <pre><code class="language-hlsl">
+float noise = Checkerboard( i.vTextureCoords.xy, float2( 3, 10 ) );
+    </code></pre>
+    <img src="/media/proc_checkerboard.png">
+    
+    <h3>Circle and Ellipse</h3>
+    <info>
+        There are functions called <string>Circle</string> and <string>Ellipse</string>, however they both have the same 
+        functionality. So feel free to use either of them.
+    </info>
+    <p>
+        Draws a circle of a certain size at the middle of given UV coordinates.
+    </p>
+    <pre><code class="language-hlsl">
+float Circle( float2 uv, float size )
+    </code></pre>
+    <p>
+        <ul>
+            <li>
+                <string>uv</string> - texture coordinates. 
+            </li>
+            <li>
+                <string>size</string> - size of given circle. Value of <b>1</b> will draw the circle across the entire UV 
+                from <b>[0,0] to [1,1]</b>. Value of <b>2</b> will draw the circle with size of double UV. Smaller values 
+                will draw it without reaching the original UV bounds. <b>0.5</b> will be half of the UV. 
+            </li>
+        </ul>
+    </p>
+    <p>
+        This will draw a circle that fills 75% of given UV coordinates. Please keep in mind that this shape will rendered within 
+        the <b>0-1</b> range, circle/square shapes using this implementation do not tile. 
+    </p>
+    <pre><code class="language-hlsl">
+float shape = Circle( i.vTextureCoords.xy, 0.75 );
+    </code></pre>
+    <img src="/media/proc_ellipse.png">
+    <p>
+        If you would like to offset the positioning of circle across the UV, you can just add/subtract values from texture
+        coordinates. 
+    </p>
+
+    <h3>Square and Rect</h3>
+    <info>
+        There are functions called <string>Square</string> and <string>Rect</string>, however they both have the same 
+        functionality. So feel free to use either of them.
+    </info>
+    <p>
+        Draws a square shape on given UV coordinates. Uses same alignment rules as circle/ellipse function, also supports 
+        adjusting the size of this shape. 
+    </p>
+    <pre><code class="language-hlsl">
+float Square( float2 uv, float size)
+    </code></pre>
+    <p>
+        This is will draw a square shape at the middle of UVs, with the size of 50% of those texture coordinates.
+    </p>
+    <pre><code class="language-hlsl">
+float shape = Square( i.vTextureCoords.xy, 0.5 );
+    </code></pre>
+    <img src="/media/proc_square.png">
+
+    <h2>Polar Coordinates</h2>
+    <p>
+        There's a helper function that converts texture coordinates into polar coordinate system. Here's an example with 
+        simplex noise that is drawing using default UV <b>without</b> any manipulations:
+    </p>
+    <pre><code class="language-hlsl">
+float noise = Simplex2D( i.vTextureCoords.xy );
+    </code></pre>
+    <img src="/media/proc_simplex.png">
+    <p>
+        And this is how this noise looks like after after applying polar coordinates.
+    </p>
+    <pre><code class="language-hlsl">
+float2 PolarCoords = PolarCoordinates( i.vTextureCoords.xy );
+float noise = Simplex2D( PolarCoords );
+    </code></pre>
+    <img src="/media/proc_simplex_polar.png">
+    <p>
+        <a href="https://en.wikipedia.org/wiki/Polar_coordinate_system">Polar coordinate system</a> wraps UV textures in a circle,
+        with the center point being UV's <b>0,0</b> points. Coordinates end up getting "swirled" into this origin point.  
+    </p>
+
+    <h2>Some Tips</h2>
+    <h3>World Coordinates</h3>
+    <p>
+        This is pretty known, but you can sample textures and noises using world-space coordinates. This allows attaching noises 
+        to the world itself, while still applying it into the mesh surface. This makes it independent from any mesh transforms, 
+        it can be moved around but without affecting how noise is wrapped around. 
+    </p>
+    <p>
+        To get world-space coordinates in fragment shader, do this:  
+    </p>
+    <pre><code class="language-hlsl">
+float3 vPositionWs = i.vPositionWithOffsetWs + g_vCameraPositionWs;
+    </code></pre>
+    <p>
+        World-space coordinates may be too small without any adjustments. Dividing it by any value will increase the scaling. 
+        So if you divide these coords by <b>512</b>, that would be essentially setting the UV scale to be tiled by 512x512 world units. 
+    </p>
+    <pre><code class="language-hlsl">
+vPositionWs /= 512;
+    </code></pre>
+    <p>
+        To sample along the X and Y axis world coordinates, grab XY component from this <string>vPositionWs</string> vector. 
+    </p>
+    <pre><code class="language-hlsl">
+float noise = Simplex2D( vPositionWs.xy );
+    </code></pre>
+    <info>
+        You can also use any other combination of coordinates if you'd like to sample the texture/noise along other 
+        coordinates. For example, things like <string>.xz</string>, <string>.yz</string> would be all valid. However, 
+        keep in mind that any of these combinations will result in one of the world axis rendering these textures in 
+        a very distorted way. To properly wrap the texture along world coordinates without any skewing, you'll need 
+        triplanar mapping. 
+    </info>
+    <p>
+        Keep in mind that for some things like shapes world-space coordinates may not work, since shapes would always 
+        render to world's absolute zero coordinates (unless you implement offset that sets the placement
+        of that shape in desired world-space position). 
+    </p>
+
+    <h3>Using in Vertex Shader</h3>
+    <p>
+        Vertex shaders allow sampling textures inside of it. That applies to generating any sort of noise data too, 
+        there are no limitations on calculating any sorts of information from vertex shader. 
+    </p>
+    <p>
+        Here's an example from <article-ref link="pt10_displacement">Vertex Displacement</article-ref> article, where I am using 
+        simplex 2D and world-space vertex position to deform vertices. 
+    </p>
+    <pre><code class="language-hlsl">
+// g_flSwaySpeed, g_flNoiseScale and g_flDisplacementStrength are variables defined within that shader
+float2 vPosWs = o.vPositionWs.xy / (g_flNoiseScale * 50);
+float flNoise = Simplex2D( vPosWs + (g_flTime * g_flSwaySpeed) ) * g_flDisplacementStrength;
+    </code></pre>
+    <p>
+        Also, you can still utilize texture coordinates from given mesh, this data is also available from vertex shader. 
+    </p>
+</div>
