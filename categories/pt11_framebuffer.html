@@ -1,0 +1,316 @@
+<article-header
+    name="Frame Buffer"
+    icon="theaters"
+    category="shader fundamentals"    
+></article-header>
+<div class="Article">
+    <p>
+        <i>
+            <b>IN THIS ARTICLE: </b> learning about the purpose of frame buffers, getting and utilizing them in shaders, 
+            applying various effects. 
+        </i>
+    </p>
+    <hr>
+    <p>
+        Frame buffers are very useful in cases when applying opacity to your model isn't helpful. In this article, I'll tell about 
+        their purpose, use-cases and show a few examples what can you do with them. And if we're speaking about post-processing shaders, 
+        frame buffers absolutely necessary in almost all situations. 
+    </p>
+
+    <h2>Implementing Frame Buffer</h2>
+    <p>
+        Frame buffer represents the current frame. This is what is being displayed on your screen. Just like any other texture, 
+        current frame is represented as a Texture2D objects in shaders. Frame buffer isn't accessible by default, there are a few 
+        things you have to do before being able to read them.  
+    </p>
+
+    <warning>
+        Sometimes frame buffer may not render after applying all appropriate changes to the shader code. This may fix itself 
+        after a few seconds, but usually restarting the editor is the most reliable solution. 
+    </warning>
+    <h3>Attributes Setup</h3>
+    <p>
+        To properly fetch frame buffer, you have to add two <string>BoolAttribute</string> properties, and create a new Texture2D 
+        for the frame buffer itself. This must be placed in pixel shader, <b>outside</b> of <string>MainPs</string>
+    </p>
+    <pre><code class="language-hlsl">
+BoolAttribute(bWantsFBCopyTexture, true);
+BoolAttribute(translucent, true);
+    </code></pre>
+    <p>
+        <b>bWantsFBCopyTexture</b> will indicate that this shader requires a frame buffer. <b>translucent</b> indicates that this 
+        shader must be transparent: we're not changing actual transparency here, but it will make sure that materials with this
+        shader won't show up on the frame texture, since objects with transparency aren't written to it. We must do it because 
+        otherwise your mesh will render itself in frame buffer, essentially making it appear as a regular opaque surfac, which is useless.
+    </p>
+    <p>
+        And add the Texture2D for the frame buffer. Make sure to give it an attribute with the name of <b>FrameBufferCopyTexture</b>.
+    </p>
+    <pre><code class="language-hlsl">
+Texture2D g_tFrameBufferCopyTexture < Attribute("FrameBufferCopyTexture"); SrgbRead( false ); >;
+    </code></pre>
+    <p>
+        It can be sampled now. Let's go into the <string>MainPs</string> section now.
+    </p>
+
+    <h3>Viewport UV and Frame Sampling</h3>
+    <p>
+        Frame buffer can be sampled the same way as any other texture, although with different type of coordinates. You're probably 
+        thinking that screen-space coordinates would work here, but they're not correct for frame buffer - they must be viewport-corrected first, using 
+        the helper function <string>CalculateViewportUv()</string>. 
+    </p>
+    <pre><code class="language-hlsl">
+float2 ViewportUv = CalculateViewportUv( i.vPositionSs.xy );
+    </code></pre>
+    <p>
+        Now, using corrected UVs, you can sample the frame buffer:
+    </p>
+    <pre><code class="language-hlsl">
+float3 frame = g_tFrameBufferCopyTexture.Sample( g_sAniso, ViewportUv ).rgb;
+    </code></pre>
+    <p>
+        If you want to see if buffer is displaying correctly, you can return the pixel early just with the buffer image:
+    </p>
+    <pre><code class="language-hlsl">
+return float4( frame, 1 );
+    </code></pre>
+
+    <img src="/media/framebuffer.png">
+    <p>
+        As you can see, frame buffer is working correctly because one of the voxel dudes, despite standing behind these objects, 
+        appears visible. Since this tree and floor are marked as translucent, they're not being rendered in the frame texture. This 
+        means that frame buffer is being rendered on top of the mesh surface correctly. 
+    </p>
+    <p>
+        Another reminder that sometimes frame buffer may appear as a missing texture. If you're sure you didn't miss out 
+        important attributes, then you probably just have to restart the editor. 
+    </p>
+
+    <h3>Frame Offset Problem</h3>
+    <p>
+        You may ran into a situation where going into play mode from editor may screw up the materials that use frame buffer. 
+        It looks like this: 
+    </p>
+    <img src="/media/pt11_fuckedfb.png">
+    <p>
+        While I'm not entirely sure what's causing this problem, but you may often run into these issues while going between 
+        play/editor modes, and when material editor is open. This may be a problem with the way I'm implementing the frame buffer.
+        But anyway, don't worry about it - this issue doesn't show up in the game itself, and will affect you only in editor. 
+    </p>
+
+    <h3>Frame Buffer Downsides</h3>
+    <p>
+        Using frame buffer has it's own set of limitations, this isn't a "superior" way to handle transparency on objects. 
+        It is just one of the options you can use for handling transparency in your shader. It's probably not 
+        significantly cheaper either. Use it only if you specifically need it, like in cases where you need to somehow 
+        iterate pixels that are rendering behind the translucent surface. 
+    </p>
+    <p>
+        Trying to render multiple surfaces with frame buffer that overlap with each probably won't work. Other transparent 
+        materials will not render in frame buffer. While opacity has alpha test that allows properly rendering overlapping meshes 
+        (including with backfaces), there's no similar solution for frame buffer. If you need surface transparency for these 
+        purposes, stick with proper opacity instead.
+    </p>
+
+    <h2>Example: Advanced Glass</h2>
+    <p>
+        Using frame buffer just as a plain replacement for transparency would be redundant, so why not try doing some special 
+        effects with it? 
+    </p>
+    <p>
+        In the article <article-ref link="pt7_opacity">Opacity and Alpha Test</article-ref> I have shown a basic glass material 
+        example that utilizes opacity and alpha-testing. Now, let's use frame buffer instead, and take the advantages of rendering 
+        surface transparency this way. 
+    </p>
+    <p>
+        You'll need to have a texture set ready for this section. If you don't have any appropriate textures, here's a material 
+        that I've used as an example for this tutorial: 
+    </p>
+    <download-file url="/assets/glass_sample.zip" title="Download a sample material:" icon="archive"></download-file>
+
+    <h3>Applying via Opacity Map</h3>
+    <p>
+        First, let's make it so frame buffer appears only in intended transparent areas, so it works like an actual transparent material 
+        where opacity map controls the visuals.  
+    </p>
+    <info>
+        This example will use a base PBR shader. You can read more about implementing a custom PBR shader in 
+        <article-ref link="pt6_lighting">Lighting and Shading Model</article-ref> article. A very basic shader that 
+        outputs material to a standard shading model will be sufficient for this example. 
+    </info>
+    <p>
+        If you don't have opacity map implemented as a texture input in your shader, add this: 
+    </p>
+    <pre><code class="language-hlsl">
+CreateInputTexture2D( Opacity, Linear, 8, "", "_alpha", "Material A,10/Opacity,10/70", Default( 1 ) );
+    </code></pre>
+    <p>
+        If you're using PBR shader example from the article mentioned above, you probably should have a normal map texture 
+        that has unused alpha channel. If that's the case, you can store the opacity there: 
+    </p>
+    <pre><code class="language-hlsl">
+Texture2D NormalMap < Channel( RGB, Box( Normal ), Linear ); Channel( A, Box( Opacity ), Linear ); OutputFormat( DXT5 ); SrgbRead( false ); >; 
+    </code></pre>
+    <p>
+        In shader code, just sample <string>NormalMap</string> as <b>float4</b> and then decode normal map from .rgb component 
+        separately. Leave alpha component as is, it'll be used later.
+    </p>
+    <pre><code class="language-hlsl">
+float4 NormalOpacity = NormalMap.Sample( g_sAniso, uv ).rgba; 
+float3 normal = DecodeNormal( NormalOpacity.rgb );
+    </code></pre>
+    <p>
+        Sample the frame texture. Don't forget to get proper viewport UVs as sampling coordinates, or else this frame will be 
+        messed up.
+    </p>
+    <pre><code class="language-hlsl">
+float2 ViewportUv = CalculateViewportUv( i.vPositionSs.xy );
+float3 frame = g_tFrameBufferCopyTexture.Sample( g_sAniso, ViewportUv ).rgb;
+    </code></pre>
+    <p>
+        Frame buffer needs to be applied onto a texture. I think adding it to <b>Emission</b> slot in material's object works best: 
+        texture becomes unaffected by lighting conditions but still has all shading features like reflections by roughness/
+        metalness properties. 
+    </p>
+    <p>
+        This is how you add it: add frame texture variable, and then multiply it by the inverted opacity map. It will make all 
+        opaque bits of the material dark on the emission map, which means it will make frame buffer invisible there. 
+    </p>
+    <pre><code class="language-hlsl">
+// (1.0 - NormalOpacity.a) inverts NormalOpacity.a 
+Material mat = Material::Init();
+// ...
+mat.Emission = frame.rgb * (1.0 - NormalOpacity.a);
+    </code></pre>
+    <img src="/media/pt11_fbemission.png">
+
+    <h3>Surface Distortion</h3>
+    <p>
+        You know how some bumpy mirror/window surfaces can distort objects behind of it? Let's implement this effect, this should 
+        be fairly easy. For this effect, you'll need to use tangent-space normals. 
+    </p>
+    <info>
+        <p>
+            ☝️🤓 Reminder! Tangent-space normals is what you get after decoding the normal map texture using <string>DecodeNormal</string>
+            function. There are also world-space normals, which is what you must insert into the material properties before passing it 
+            into shading model.
+        </p>
+        <p>
+            You can read more about normals, their orientation types and formats in <article-ref link="normals">Normal Map Types</article-ref>
+            that covers almost all basic information.
+        </p>
+    </info>
+    <p>
+        By default, values from your normal map may be too "small" to be effective for distorting the UV. So let's make a 
+        new variable that allows adjusting the distortion intensity:
+    </p>
+    <pre><code class="language-hlsl">
+float g_flDistortionIntensity < UiType( Slider ); Range( 0, 8 ); Default( 1 ); UiGroup("Material A,10/Normal Map,10/32"); >; 
+    </code></pre>
+    <p>
+        Let's update the viewport UV now. We can do very basic distortion effect by offsetting UV using values from 
+        red and green channels of tangent-space normals, which represent X and Y axis. 
+    </p>
+    <pre><code class="language-hlsl">
+float flDistortion = normal.rg * (g_flDistortionIntensity * 8);
+float2 ViewportUv = CalculateViewportUv( i.vPositionSs.xy - flDistortion );     
+    </code></pre>
+    <p>
+        <ul>
+            <li>
+                <string>i.vPositionSs.xy - flDistortion</string> will offset the UV by given value from normal map's RG component,
+                after intensity correction.
+            </li>
+            <li>
+                <string>normal.rg * (g_flDistortionIntensity * 8)</string> will adjust the intensity of given normal map.
+                It gets a bit weird in order to compensate how small values in normal maps can be.
+                You're free to edit this part as you wish. 
+            </li>
+        </ul>
+    </p>
+    <p>
+        Now compile these changes, adjust the values in material editor, and see what happens!
+    </p>
+    <video controls autoplay loop>
+        <source src="/media/pt11_distortion.mp4" type="video/mp4">
+    </video>
+
+    <h3>Screenspace Fog Effect</h3>
+    <p>
+        This doesn't have much practical use, but if you want to add fog just inside of your frame buffer, that's still possible. 
+        Using linear depth buffer values, you can paint fog onto the frame buffer, which means that while main texture remains 
+        unaffected, everything on frame texture will be with a fog!
+    </p>
+    <p>
+        Let's add variables for the fog. You'll need fog color, fog density, and end distance point in world-space units. 
+        Linear depth values allow definining "end" position for the depth buffer in world-space units, which is very useful.
+    </p>
+    <pre><code class="language-hlsl">
+float g_flFogEndDistanceWs < UiType( Slider ); Range( 0, 1024 ); Default( 512 ); UiGroup("Material A,10/Layer Settings,10/20"); >;
+float g_flFogDensity < UiType( Slider ); Range( 0, 1 ); Default( 1 ); UiGroup("Material A,10/Layer Settings,10/21"); >;
+float3 g_vFrameBufferFogColor < UiType( Color ); Default3( 1, 0, 0.5 ); UiGroup("Material A,10/Layer Settings,10/22"); >;
+    </code></pre>
+    <info>
+        I've tried simplifying the name to <string>g_vFogColor</string> and turns out that variable with this name is already 
+        defined in <string>common.fxc</string> and <string>hlsl.hlsl</string> (what)
+    </info>
+    <p>
+        Go to <string>MainPs</string> again, get the linear depth buffer value using <string>Depth::GetLinear()</string>. 
+        It takes screen-space coordinates as UV input, you don't have to correct them for viewport. Don't forget to offset them 
+        by <string>flDistortion</string> so it stays in-line with frame buffer UVs.
+    </p>
+    <pre><code class="language-hlsl">
+float flLinear = Depth::GetLinear( i.vPositionSs.xy - flDistortion );
+    </code></pre>
+    <p>
+        Now blend frame buffer texture (before passing it to emission slot) with the fog color, and use depth buffer value for interpolation:
+    </p>
+    <pre><code class="language-hlsl">
+frame = lerp( g_vFrameBufferFogColor, frame, smoothstep( 0, g_flFogDensity, 1 - flLinear / g_flFogEndDistanceWs ) );
+    </code></pre>
+    <p>
+        Let me clarify some bits here:
+        <ul>
+            <li>
+                <string> smoothstep( 0, g_flFogDensity, ... )</string> allows remapping the depth values so final fog gradient 
+                can be adjusted to be shorter/longer, defined by <b>g_flFogDensity</b> variable.
+            </li>
+            <li>
+                <string>1 - flLinear / g_flFogEndDistanceWs</string> inverts <b>flLinear</b> and then divides by distance value. 
+                So if you set end distance to <b>500</b>, then this fog will become 100% visible at 500 world-space units away 
+                from the camera. 
+            </li>
+        </ul>
+    </p>
+    <p>
+        You can now go to material editor and adjust the fog.
+    </p>
+    <img src="/media/pt11_fbfog.png">
+    <p>
+        Don't forget that this section is just an example, if you're going to implement these effects please do it properly. 
+        Wrap optional features into combos or separate shaders, don't waste computing time on things that most artists would 
+        probably want to keep disabled by default. 
+    </p>
+
+    <h2>Post-processing Frame Buffer</h2>
+    <p>
+        I highly recommend reading the <article-ref link="postprocessing_basics">Basic Postprocessing</article-ref> article 
+        since it goes in much better details about post-processing implementation and other stuff. However, I'll just mentioned 
+        that unlike regular surface shaders, post-processing have a different way of fetching the frame texture.
+    </p>
+    <p>
+        Instead, frame buffer is usually passed directly into the shader from a custom C# component, created just for the 
+        post-processing effect. This is how it's done in the component:
+    </p>
+    <pre><code class="language-csharp">
+RenderAttributes attributes = new();
+// ...
+Graphics.GrabFrameTexture( "ColorBuffer", attributes );
+    </code></pre>
+    <p>
+        <b>ColorBuffer</b> is the attribute name for Texture2D inside of your post-processing shader. RenderAttributes object 
+        holds all the variables and other data that you want to pass into the shader. 
+    </p>
+
+    <download-file url="/shaders/Pt11_FrameBufferAndEffects.shader" title="Download the complete shader:" icon="file_open"></download-file>
+</div>
