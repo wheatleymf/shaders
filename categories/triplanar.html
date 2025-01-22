@@ -1,0 +1,129 @@
+<article-header
+    name="Triplanar Mapping"
+    icon="view_in_ar"
+    category="references"    
+></article-header>
+<div class="Article">
+    s&box has a built-in helper code library that handles <b>triplanar mapping</b>. This is an easy way to implement triplanar 
+    mapping to your shader if it requires it for your desired visuals. 
+
+    <h2>What is Triplanar Mapping?</h2>
+    <p>
+        Triplanar mapping is a technique that allows sampling the texture in world-space coordinates, without using mesh UVs: 
+        it only requires model's geometric data (which is always available as <string>i.vNormalWs</string>), 
+        sampler state, pixel's world-space position, and texture itself. 
+    </p>
+    <p>
+        Such texture is sampled three times, in three different directions, then blended together. As a result, you get a texture 
+        that is binded to world-space coordinates instead of model's UVs, projecting correctly in all directions: this texture 
+        will be not be affected by model's transforms like rotation, position or scale. 
+    </p>
+    <p>
+        Here's an example from <b>My Summer Cottage</b> and early version of cliff shader, where I am using triplanar mapping to 
+        sample the base rock texture onto the surface. This allows me transforming the cliff in any way, where important details are 
+        still affected by shape adjustments, but base rock texture stays consistent & unaffected. 
+    </p>
+    <video controls autoplay loop>
+        <source src="https://smallfi.sh/blogs/my_summer_cottage/whmf/sbox-dev_fFTPvJPZNi.mp4" type="video/mp4">
+    </video>
+
+    <h3>Triplanar Downsides</h3>
+    <p>
+        Triplanar samples same texture <b>three times</b> from three different directions. Three samples per texture isn't very good 
+        for the performance, especially if you have many textures in your shader. Use triplanar only if you're sure that you really 
+        need it for your shader. 
+    </p>
+
+    <h2>Implementing Triplanar Mapping</h2>
+    <p>
+        This is the function that you need to use to sample the texture using triplanar mapping: 
+    </p>
+    <pre><code class="language-hlsl">
+Tex2DTriplanar( Texture2D texture, SamplerState samplerState, float3 vPositionWs, float3 vNormalWs, float2 vTile, float flBlend, float2 vTexScale )
+    </code></pre>
+    <p>
+        Let's explain every argument that this function takes: 
+        <ul>
+            <li>
+                <string>texture</string> - original Texture2D objects that holds the data you want to sample using triplanar 
+                mapping. 
+            </li>
+            <li>
+                <string>samplerState</string> - sampler state that will be used for sampling these textures. You can use any global 
+                sampler available in s&box like <string>g_sPointWrap</string>, or implement your own. 
+            </li>
+            <li>
+                <string>vPositionWs</string> - world-space position of given pixel. By default, PixelInput doesn't hold the data for it, 
+                but you can get the value yourself. I'll show how to do it later. 
+            </li>
+            <li>
+                <string>vNormalWs</string> - geometric world-space normal data of your mesh. You can access it from your PixelInput struct 
+                using <b>i.vNormalWs</b> property. 
+            </li>
+            <li>
+                <b>optional</b> <string>vTile</string> - affects how many times this texture will be tiled (repeated). Higher values 
+                will make the texture appear significantly smaller. Accepts float2 value. Default value is <b>512</b>, which makes texture stupidly 
+                small. I recommend using <b>1</b> or less. 
+            </li>
+            <li>
+                <b>optional</b> <string>flBlend</string> - blend factor. Defines the size of blending gradient where two sample 
+                directions overlap. Lower values will make this transition smoother, while greater values will make it more 
+                harsh and contain obvious seams. Default value is <b>1.0</b>. 
+            </li>
+            <li>
+                <b>optional</b> <string>vTexScale</string> - texture scale. Independently adjusts the scale of given texture, 
+                accepts float2 value. Default value is <b>1.0</b>.
+            </li>
+        </ul>
+        <info>
+            Even thought this function accepts scaling/tiling arguments as <b>float2</b>, you can also pass values
+            (for example, <b>0.5</b>) to them as a scalar <b>float</b> too, HLSL will automatically handle this and basically treat this input as <b>float2(0.5, 0.5)</b>.
+            If you'd like to adjust scale/tiling just for one of the axis, you'll need to pass the value as a proper float2 vector. 
+        </info>
+    </p>
+    <p>
+        Additionally, if you don't want to get world-space pixel position yourself, there's an alternative <string>Tex2DTriplanar</string>
+        function that replaces <b>float3 vPositionWs</b> argument with <b>PixelInput pixelInput</b>, where you can basically pass whole 
+        struct and function will handle world-space pixel position on it's own. 
+    </p>
+
+    <h3>Importing Triplanar Function</h3>
+    <p>
+        Include the source file with triplanar functions in your pixel shader code: 
+    </p>
+    <pre><code class="language-hlsl">
+#include "common/utils/triplanar.hlsl"
+    </code></pre>
+
+    <h3>World-Space Pixel Coordinates</h3>
+    <p>
+        To get world-space position of a given pixel, you must add <string>g_vCameraPositionWs</string> to the value of 
+        PixelInput's <string>vPositionWithOffsetWs</string>:
+    </p>
+    <pre><code class="language-hlsl">
+float3 vPositionWs = i.vPositionWithOffsetWs, g_vCameraPositionWs;
+    </code></pre>
+
+    <h3>Sampling with Triplanar</h3>
+    <p>
+        Your texture can be set up the same way as always. If you'd like, you can define variables for tiling, scaling and 
+        blend factor that will be exposed to material editor:
+    </p>
+    <pre><code class="language-hlsl">
+CreateInputTexture2D( SomeTexture, Srgb, 8, "", "_color", "Material,10/Texture Inputs,10/10", Default3( 1, 0, 1 ) );
+Texture2D ColorMap < Channel( RGB, Box( SomeTexture ), Srgb ); OutputFormat( BC7 ); SrgbRead( true ); >;
+  
+float2 TextureTiling < UiType( Slider ); Range2( 0, 0, 8, 8 ); UiGroup( "Material,10/Triplanar Settings,10/20"); >;
+float2 TextureScale < UiType( Slider ); Range2( 0, 0, 16, 16 ); UiGroup( "Material,10/Triplanar Settings,10/21"); >;
+float BlendFactor < UiType( Slider ); Range( 0, 3 ); UiGroup( "Material,10/Triplanar Settings,10/22"); >;
+    </code></pre>
+    <p>
+        In <string>MainPs</string>, this is how you sample the texture: 
+    </p>
+    <pre><code class="language-hlsl">
+float3 tex = Tex2DTriplanar( ColorMap, g_sAniso, i, TextureTiling, BlendFactor, TextureScale ).rgb;
+    </code></pre>
+    <video controls autoplay loop>
+        <source src="/media/triplanar.mp4" type="video/mp4">
+    </video>
+</div>
