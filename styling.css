@@ -343,6 +343,7 @@ body {
     width: 100%;
     max-width: 100%;
     padding: 25 25;
+    padding-top: 64px;
 }
 
 .contents.mobile .Article {
