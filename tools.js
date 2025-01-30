@@ -131,8 +131,6 @@ function EnableMobileMode( isMobile )
 {
     if (!isMobile) return; 
 
-    console.log("Identified user's window as a mobile, updating the layout...");
-
     let navigation = document.querySelector( ".navigation" );
     navigation.classList.add( "mobile" );
     let contents = document.querySelector( ".contents" );
