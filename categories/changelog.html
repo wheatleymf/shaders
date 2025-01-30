@@ -14,6 +14,21 @@
         <b>January 30th, 2025</b>: 
         <ul>
             <li>
+                <p>
+                    <b>Implemented basic mobile phone support</b>. This should greatly improve the quality of life for mobile users, 
+                    at least layout should not be fundamentally fucked anymore. Swipe to the right to open a navigation menu, 
+                    swipe to the left to hide it. This is an early iteration so please let me know if anything breaks. 
+                </p>
+                <p>
+                    Night theme switch button will be displayed only when you have navigation bar open. At the moment, 
+                    quick navigation with headings on the right isn't available on mobile phones.
+                </p>
+                <p>
+                    Current method for detecting mobile phones is done by checking if user has appropriate viewport width, 
+                    if you're using tablets/desktops and see mobile layout enabled anyway, please let me know.  
+                </p>
+            </li>
+            <li>
                 Updated all shader files to include <string>Depth</string> mode. This was an oversight on my end, this must 
                 be featured by default because shadows won't cast without depth prepass. Sorry!
             </li>
