@@ -65,6 +65,18 @@ body {
     overflow-x: hidden;
 }
 
+.navigation.mobile.displaying {
+    left: 0;
+
+}
+.navigation.mobile {
+    position: fixed;
+    left: -100%;
+    width: 100%;
+    z-index: 999;
+    min-width: unset;
+}
+
 .navigation {
     min-width: 380px;
     height: 100%;
@@ -74,6 +86,7 @@ body {
     font-weight: 300;
     display: flex;
     flex-flow: column;
+    transition: left .15s ease-in-out;
 }
 
 .navigation p {
@@ -218,6 +231,7 @@ body {
 
 /* CONTENTS */
 
+
 .contents 
 {
     color: var(--pal-article-text);
@@ -240,14 +254,20 @@ body {
     font-weight: 700;
     font-size: 32px;
     margin: 0;
-    margin-top: 32px;
+    margin-top: 86px;
+    margin-bottom: 24px;
+    line-height: 34px;
 }
 .contents h3 {
     font-size: 24px;
     line-height: 18px;;
     margin-top: 64px;
     margin-bottom: 24px;
+    
 }
+.contents h2, .contents h3 {
+    text-align: left;
+} 
 
 .contents a {
     font-weight: bold;
@@ -262,6 +282,7 @@ body {
     color: var(--pal-medium);
     text-decoration: none;
 }
+
 .contents .meta {
     font-style: italic;
     color: var(--pal-text);
@@ -271,6 +292,10 @@ body {
     margin-top: 48px;
     padding-bottom: 48;
 }
+    .contents.mobile .meta {
+        margin-left: 0;
+        font-size: 12px;
+    }
 
 .contents code {
     font-family: 'JetBrains Mono', monospace;
@@ -311,6 +336,19 @@ body {
     margin-top: 20px;
     margin-bottom: 46px;
 }
+
+/* .mobile class overrides some of the visuals. Do not add this if user is on desktop. */
+.contents.mobile {
+    margin-left: 0;
+    width: 100%;
+    max-width: 100%;
+    padding: 25 25;
+}
+
+.contents.mobile .Article {
+    padding-left: 0;
+}
+
 
 /* CONTENTS SPECIAL BLOCKS */
 /* They are not valid HTML elements, but CSS still allows you to style them, so I am using this as my advantage */ 
@@ -414,6 +452,10 @@ a.dl {
     transition: all .23s ease-in-out;
     margin-top: 24px;
 }
+.contents.mobile .download {
+    padding: 8 8;
+    font-size: 12px;
+}
     .download:hover {
         transform: scale(1.05);
         background: var(--pal-sf);
@@ -430,6 +472,9 @@ a.dl {
         .download .icon span {
             font-size: 64px;
             transform: rotate(-4deg);
+        }
+        .contents.mobile .download .icon span {
+            font-size: 32px;
         }
 
     .download .file {
@@ -534,6 +579,7 @@ a.dl {
 /* CONTENTS ITSELF */
 
 .contents .Article {
+    margin-top: 42px;
     padding-left: 104px;
     text-align: justify;
 }
@@ -541,7 +587,7 @@ a.dl {
 /* Theme Switcher */
 .switch {
     position: fixed;
-    z-index: 999;
+    z-index: 1000;
     right: 32px;
     bottom: 32px;
     background: var(--pal-bg);
@@ -587,7 +633,7 @@ a.dl {
 
 .loader
 {
-    position: absolute;
+    position: fixed;
     right: 32;
     top: 32;
     background: var(--pal-header);
