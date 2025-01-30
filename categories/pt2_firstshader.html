@@ -58,12 +58,12 @@ FEATURES
 MODES 
 {
     // This is a main rendering mode. You may want to always include it. 
-    VrForward();
+    Forward();
     // ...
 }
 
 // COMMON block allows defining variables and other data that you can access
-// from anywhere, like from both vertex and fragment shader. 
+// from any shader stage, like from both vertex and fragment shader. 
 COMMON
 {
     // ...
@@ -122,7 +122,7 @@ FEATURES
         You can see all available modes on s&box documentation page <a href="https://docs.facepunch.com/s/sbox-dev/doc/modes-SFu3UxPnhm">here</a>. 
         <ul>
             <li>
-                <string>VrForward()</string> is a standard rendering mode. This is where all primary rendering happens, your shader won't 
+                <string>Forward()</string> is a standard rendering mode. This is where all primary rendering happens, your shader won't 
                 compile without this mode.
             </li>
             <li>
@@ -139,10 +139,20 @@ FEATURES
     <pre><code class="language-hlsl">
 MODES
 {
-    VrForward();
+    Forward();
     Depth();
 }            
     </code></pre>
+    <info>
+        As of <a href="https://commits.facepunch.com/514155">January 30th, 2025</a> default rendering mode has been renamed from 
+        <string>VrForward()</string> to <string>Forward()</string>. Old shaders that have been compiled with the old name before 
+        this change will continue to work, but you'll need to rename this mode if you want to compile it again. 
+
+        <p>
+            If you're trying to restore old shader from early s&box days, you may want to read about all important shader changes 
+            in a dedicated article, <article-ref link="oldshaders">Relics of the Past</article-ref>
+        </p>
+    </info>
     <warning>
         <string>Depth()</string> will be replaced with <string>DepthNormal()</string> in the near future. I don't know if old shaders
         will continue working, but you'll definitely need to replace it with DepthNormal it's out. It should bring support for G-buffer,
@@ -162,7 +172,7 @@ MODES
     <pre><code class="language-hlsl">
 COMMON
 {
-	#include "common/shared.hlsl"
+    #include "common/shared.hlsl"
 }
     </code></pre>
 
@@ -296,24 +306,24 @@ VS
         is now ready! It will return a <string>PixelInput</string> object that you will utilize in fragment shader.
     </p>
     <pre><code class="language-hlsl">
-        VS
-        {
-            #include "common/vertex.hlsl"
+VS
+{
+    #include "common/vertex.hlsl"
         
-            // "MainVs" is the name of a main vertex shader function. It always must be MainVs.
-            // VertexInput is the "unprocessed" vertex data that we're feeding into vertex shader. It is our input. 
-            // PixelInput is a type that vertex shader will return. Object of this type will be sent to fragment shader.
-            PixelInput MainVs( VertexInput i )
-            {
-                // Create PixelInput object, initialize it with our processed vertex.
-                // Between ProcessVertex() and FinalizeVertex() you can do any sorts of tricks
-                // with your vertices.
-                PixelInput o = ProcessVertex( i );
+    // "MainVs" is the name of a main vertex shader function. It always must be MainVs.
+    // VertexInput is the "unprocessed" vertex data that we're feeding into vertex shader. It is our input. 
+    // PixelInput is a type that vertex shader will return. Object of this type will be sent to fragment shader.
+    PixelInput MainVs( VertexInput i )
+    {
+        // Create PixelInput object, initialize it with our processed vertex.
+        // Between ProcessVertex() and FinalizeVertex() you can do any sorts of tricks
+        // with your vertices.
+        PixelInput o = ProcessVertex( i );
 
-                // Return finalized vertex
-                return FinalizeVertex( o );
-            }
-        }     
+        // Return finalized vertex
+        return FinalizeVertex( o );
+    }
+}     
     </code></pre>
 
     <h2>Pixel Shader</h2>
