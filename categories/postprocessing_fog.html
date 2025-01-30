@@ -12,14 +12,14 @@
     </p>
     <h2>Set up a Shader</h2>
     <p>
-        Add <string>MODES</string> section with <b>VrForward()</b> added. You'll also need to add <string>COMMON</string> and include 
+        Add <string>MODES</string> section with <b>Forward()</b> added. You'll also need to add <string>COMMON</string> and include 
         a HLSL file <b>"postprocess/shared.hlsl"</b>. It will add bunch of core <string>fxc</string> files that carry most global variables 
         and other properties that will be used in this shader.
     </p>
     <pre><code class="language-hlsl">
 MODES
 {
-    VrForward();
+    Forward();
 }
 
 COMMON
