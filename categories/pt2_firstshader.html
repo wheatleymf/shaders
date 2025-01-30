@@ -123,7 +123,13 @@ FEATURES
         <ul>
             <li>
                 <string>Forward()</string> is a standard rendering mode. This is where all primary rendering happens, your shader won't 
-                compile without this mode.
+                compile without this mode.     
+                
+                <p>
+                    Forward means <b>forward rendering</b>, this is a rendering method that is utilized by s&box, and Source 2 in general. 
+                    To be more precise, s&box utilizes <b>forward+</b> variant which is more modern and allows handling lighting and bunch of other 
+                    special rendering stuff in a nicer way. 
+                </p>
             </li>
             <li>
                 <string>Depth()</string> is an optional mode that will make shader write to depth. This is necessary for shadow rendering
