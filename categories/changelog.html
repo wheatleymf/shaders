@@ -1,0 +1,179 @@
+<article-header
+    name="Website Changelog"
+    icon="build"
+    category="local website stuff"    
+></article-header>
+<div class="Article">
+    <p>
+        This is a list of changes on this website. If there's any significant update to the contents, they will be probably 
+        shown here. Additionally, you can monitor <a href="https://github.com/wheatleymf/shaders/commits/main/">commit changes on GitHub</a>
+        to see all exact changes. This page serves it's purpose as a summary for most important commits. 
+    </p>
+    <h3>January 2025</h3>
+    <p>
+        <b>January 30th, 2025</b>: 
+        <ul>
+            <li>
+                Updated all shader files to include <string>Depth</string> mode. This was an oversight on my end, this must 
+                be featured by default because shadows won't cast without depth prepass. Sorry!
+            </li>
+            <li>
+                Updated <article-ref link="pt2_firstshader">Your First Unlit Shader</article-ref>. s&box will change the name 
+                of the main rendering mode from <string>VrForward</string> to <string>Forward</string>. Added a reference to 
+                "Relics of the Past" article. Fixed typo. Added a very little notation about forward+ rendering. 
+            </li>
+            <li>
+                Shader files have also been updated to use <string>Forward</string> mode from now on.
+            </li>
+            <li>
+                Relics of the Past article has been updated to feature old mode <string>VrForward</string>
+                and what should be used instead of it from now on. 
+            </li>
+            <li>
+                Added a dedicated changelog page that you're currently reading. :-)
+            </li>
+        </ul>
+    </p>
+    <p>
+        <b>January 22nd, 2025</b>:
+        <ul>
+            <li>
+                Added new article: <article-ref link="triplanar">Triplanar Mapping</article-ref>
+            </li>
+        </ul>
+    </p>
+    <p>
+        <b>January 21st, 2025</b>:
+        <ul>
+            <li>
+                Added new article: <article-ref link="pt11_framebuffer">Part 11. Frame Buffer</article-ref>
+            </li>
+            <li>
+                Added new article: <article-ref link="procedural">Procedural Noises and Shapes</article-ref>
+            </li>
+            <li>
+                Added a link to a discussion thread in s&box discord on welcome page.  
+            </li>
+        </ul>
+    </p>
+    <p>
+        <b>January 19th, 2025</b>:
+        <ul>
+            <li>
+                Implemented <string>nav-item</string> custom HTML tag that replaces old <string>a</string> tag on index page.
+                This should make easier to maintain, edit and implement new article links in the index navigation column.
+            </li>
+            <li>
+                Added <string>notranslate</string> to all material icons so they wouldn't be affected by translators and break 
+                how icons are rendered on page. Tested with Google Translate but I am not sure if this will 
+                work with other machine translators. Fixes issue #1 on GitHub. 
+            </li>
+            <li>
+                Updated <article-ref link="contributing">Contributing</article-ref> page to document new added custom tag. 
+            </li>
+            <li>
+                Added a button that toggles between light and night themes
+            </li>
+            <li>
+                Bunch of CSS stylesheet re-organization to improve amount of content that can be adjusted for custom themes 
+            </li>
+            <li>
+                Some little JS code cleanup, new comments and removal of some dead code from July 2024. 
+            </li>
+        </ul>
+    </p>
+    <p>
+        <b>January 18th, 2025</b>: (initial public release)
+        <ul>
+            <li>
+                Added new article: <article-ref link="oldshaders">Relics of the Past</article-ref>
+            </li>
+            <li>
+                Released a new three-part course on post-processing shaders:
+                <ul>
+                    <li>
+                        <article-ref link="postprocessing_basics">Basic Postprocessing</article-ref>
+                    </li>
+                    <li>
+                        <article-ref link="postprocessing_fog">Screenspace Fog</article-ref>
+                    </li>
+                    <li>
+                        <article-ref link="postprocessing_dither">Dithering Effect</article-ref>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                Implemented <string>article-ref</string> tag which allows linking and redirecting users to mentioned article 
+                by clicking on the tag. Works a bit smoother than <string>a</string> links. 
+            </li>
+            <li>
+                URL now correctly updates the current state and query when switching between articles using <string>article-ref</string>
+                tag on pages. 
+            </li>
+            <li>
+                Scroll position for each article is now locally saved and restored every time you open this article again. 
+                This will persist between every session as it's saved in your browser's local storage. 
+            </li>
+            <li>
+                Huge number of phrasing improvements and proofreading for most of the articles on website
+            </li>
+            <li>
+                Uploaded bunch of sample models and materials to use for some articles that rely on specific visuals/mesh data
+            </li>
+        </ul>
+    </p>
+    <p>
+        <b>January 17th, 2025</b>:
+        <ul>
+            <li>
+                Implemented new custom tag, <string>article-header</string> and updated the documentation to show how to 
+                correctly use this tag. Replaces previous custom <string>div</string> layout which was annoying to maintain. 
+            </li>
+            <li>
+                Updated test page with latest custom tags
+            </li>
+            <li>
+                Implemented article navigation on the right: list of headings and subheadings are populated at runtime, 
+                and JS will automatically highlight the section you're currently reading on page. Clicking on these headings 
+                will automatically scroll your page to the vertical position of given section. 
+            </li>
+        </ul>
+    </p>
+    <p>
+        <b>January 16th, 2025</b>: (internal pre-release)
+        <ul>
+            <li>
+                Added new article <article-ref link="contributing">Contributing</article-ref> which documents most of the important 
+                stuff you need to know if you plan to edit or submit new articles on the website
+            </li>
+            <li>
+                JS: fixed innerHTML being updated twice, which was messing with custom elements and causing them to render 
+                twice on page
+            </li>
+            <li>
+                Re-enabled scrolling in the navigation bar since amount of articles won't fit on 1080p screen anymore
+            </li>
+            <li>
+                Added <string>download-file</string> tag
+            </li>
+            <li>
+                Current page is now correctly updated and applies the name of currently open article
+            </li>
+            <li>
+                Finished vertex displacement article and improved the wording in many other articles
+            </li>
+        </ul>
+    </p>
+    <p>
+        <b>December-January 15th, 2025</b>:
+        <ul>
+            <li>
+                Initial upload to GitHub
+            </li>
+            <li>
+                Finished writing first ten main articles and a few reference pages. Lots of work on styling and JS frontend script, 
+                and lots of other changes that I can't remember in details anymore.. 
+            </li>
+        </ul>
+    </p>
+</div>
