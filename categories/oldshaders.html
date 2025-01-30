@@ -14,6 +14,27 @@
         some old bits into modern API.
     </p>
 
+    <h2>VrForward()</h2>
+    <p>
+        On <a href="https://commits.facepunch.com/514155">January 30th, 2025</a>, default rendering mode <string>VrForward()</string>
+        has been renamed to <string>Forward()</string>. This is a more accurate name since both VR and non-VR visuals use the same 
+        rendering method, Forward+.  
+    </p>
+    <p>
+        To fix shaders that use old name, just rename <string>VrForward</string> in <string>MODES</string> section:
+    </p>
+    <pre><code class="language-hlsl">
+MODES 
+{
+    Forward()
+    // ... 
+}
+    </code></pre>
+    <p>
+        Shaders that have been compiled with old mode name before this change will continue to work, however they won't compile 
+        until you rename this mode. 
+    </p>
+
     <h2>Tex2DS and CreateTexture2D</h3>
     <p>
         You may still stumble upon this stuff from time to time. Back when Source 2 was compiling for multiple platforms like DX9 and 
