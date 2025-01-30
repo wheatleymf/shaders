@@ -345,9 +345,14 @@ body {
     padding: 25 25;
     padding-top: 64px;
 }
-
 .contents.mobile .Article {
     padding-left: 0;
+}
+.contents.mobile p {
+    margin: 30 0;
+}
+.contents.mobile string {
+    display: inline;
 }
 
 
