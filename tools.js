@@ -57,6 +57,9 @@ function UpdateLoader( status, callerObject = undefined )
     }
 }
 
+//
+// Little helper to switch between night and light themes
+//
 let Theme = {
     _UpdateState: function( themename ) {
         document.documentElement.classList.toggle( themename );
@@ -78,6 +81,66 @@ let Theme = {
         if (val == "true")
             this.Toggle();
     }
+}
+
+//
+// Enables mobile-style functionality for the navigation bar on the left.
+// If user swipes to the right, this menu will open. Swiping to the left will close it. 
+//
+function EnableNavigationSlide()
+{
+    document.addEventListener("DOMContentLoaded", function () {
+        let touchStartX = 0;
+        let touchCurrentX = 0;
+        const swipeThreshold = 75;
+    
+        document.addEventListener("touchstart", function (e) {
+            touchStartX = e.touches[0].clientX;
+        });
+    
+        document.addEventListener("touchmove", function (e) {
+            touchCurrentX = e.touches[0].clientX;
+        });
+    
+        document.addEventListener("touchend", function () {
+            if (touchCurrentX < touchStartX - swipeThreshold) {
+                document.querySelector(".navigation").classList.remove("displaying");
+                document.querySelector(".switch").style.opacity = 0;
+            } else if (touchCurrentX > touchStartX + swipeThreshold) {
+                document.querySelector(".navigation").classList.add("displaying");
+                document.querySelector(".switch").style.opacity = 1;
+            }
+        });
+    });
+}
+
+//
+// Check if user's viewport matches general mobile width, this will be used to 
+// update page layout to be more comfortable for reading from phones. 
+// 
+function isMobile() {
+    return window.outerWidth <= 768;
+}
+
+// 
+// This enables bunch of handlers and adjusts CSS styling to be more comfortable for the reader. 
+// Triggers only once during the initial loading of page.
+// Not sure if this will work the way I imagine it lol, sorry!
+//
+function EnableMobileMode( isMobile )
+{
+    if (!isMobile) return; 
+
+    console.log("Identified user's window as a mobile, updating the layout...");
+
+    let navigation = document.querySelector( ".navigation" );
+    navigation.classList.add( "mobile" );
+    let contents = document.querySelector( ".contents" );
+    document.body.classList.add( "mobile" );
+
+    EnableNavigationSlide();
+
+    contents.classList.add( "mobile" );    
 }
 
 // 
@@ -115,7 +178,15 @@ function DisplayImage( image )
     const fullimg = document.createElement( "img" );
     const link = document.createElement( "a" );
     const tip = document.createElement( "p" );
-    
+
+    // Little override to throw user into a new tab with the full image instead of creating a new element
+    if ( isMobile() )
+    {
+        const imageTab = window.open( window.location.origin + url, "_blank" );
+        imageTab.focus();
+        return;
+    }
+
     fullimg.setAttribute( "src", url );
     div.appendChild( fullimg );
     div.id = "imageviewer";
@@ -344,6 +415,14 @@ async function DisplayCategory( categoryName )
     // Make sure to run code highlighter on recevied page before rendering it
     hljs.highlightAll( );
 
+    // Hide the navigation menu after selecting the entry 
+    // todo: make this less retarded 
+    if( isMobile() )
+    {
+        document.querySelector(".navigation").classList.remove("displaying");
+        document.querySelector(".switch").style.opacity = 0;
+    }
+
     // Add "onclick" event on all images featured in the downloaded article
     let images = document.getElementsByTagName("img");
     let imgList = Array.prototype.slice.call(images);
@@ -392,4 +471,4 @@ if ( !RequiresEntry )
 
 Theme.Restore();
 MonitorQueryUpdates();
-
+EnableMobileMode( isMobile() );
