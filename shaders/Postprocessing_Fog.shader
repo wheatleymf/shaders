@@ -3,7 +3,7 @@
 
 MODES
 {
-    VrForward();
+    Forward();
 }
 
 COMMON

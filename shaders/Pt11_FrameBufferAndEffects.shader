@@ -1,5 +1,5 @@
 // Shader tutorial by wheatleymf
-// "Shader Fundamentals ~ Pt.10: VERTEX DISPLACEMENT"
+// "Shader Fundamentals ~ Pt.11: FRAME BUFFER"
 // You're free to use and modify this shader.
 
 FEATURES
@@ -9,7 +9,7 @@ FEATURES
 
 MODES
 {
-	VrForward();
+	Forward();
     Depth();
 }   
 

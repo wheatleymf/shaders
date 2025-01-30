@@ -2,7 +2,7 @@
 // Original implementation by ceitine. I've only done some changes for better visuals control. :-) 
 MODES
 {
-    VrForward();
+    Forward();
 }
 
 COMMON

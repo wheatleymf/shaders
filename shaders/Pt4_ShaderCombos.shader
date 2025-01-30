@@ -14,8 +14,8 @@ FEATURES
 
 MODES
 {
-	VrForward();
-	ToolsVis( S_MODE_TOOLS_VIS );
+	Forward();
+    Depth();
 }   
 
 COMMON

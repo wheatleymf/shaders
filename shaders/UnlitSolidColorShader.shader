@@ -9,8 +9,12 @@ FEATURES
 
 MODES
 {
-	VrForward();
-	ToolsVis( S_MODE_TOOLS_VIS );
+    // Forward() is the main rendering method. s&box uses Forward+ rendering. 
+    // Your shader will not compile without this mode.
+	Forward();
+    // Depth() enabled depth prepass on this material. This is necessary for rendering shadows
+    // on your material, and making your material appear in depth buffer. 
+    Depth();
 }   
 
 COMMON

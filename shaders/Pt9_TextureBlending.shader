@@ -18,7 +18,8 @@ FEATURES
 
 MODES
 {
-	VrForward();
+	Forward();
+    Depth();
 }   
 
 COMMON

@@ -1,6 +1,6 @@
 MODES
 {
-    VrForward();
+    Forward();
 }
 
 struct VertexInput
