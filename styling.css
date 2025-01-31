@@ -267,6 +267,7 @@ body {
 }
 .contents h2, .contents h3 {
     text-align: left;
+    line-break: anywhere;
 } 
 
 .contents a {
