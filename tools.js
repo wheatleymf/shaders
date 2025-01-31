@@ -12,6 +12,29 @@ let loaderTarget = document.querySelector( ".loader" );
 const Header = document.title;
 const QuickNavigation = document.querySelector( ".headers" );
 
+function HandleStart() {
+    window.addEventListener( "load", function() {
+        console.log( "done :-)" );
+    
+        let loadingBoilerplate = document.querySelector( ".placeholder" );
+    
+        loadingBoilerplate.addEventListener( "animationend", function() {
+            loadingBoilerplate.remove();
+        });
+        loadingBoilerplate.classList.add( "removing" );
+    });
+    
+    setTimeout( () => {
+        let loading = document.querySelector( ".placeholder" );
+        
+        let notification = document.createElement( "span" );
+        notification.textContent = "looks like page isn't booting up :( please see console and try reloading.";
+    
+        loading?.appendChild( notification );
+    
+    }, 20000 );
+}
+
 //
 // Transforms the relative link into proper URL, then grabs the last part that displays 
 // the file name and extension. Used for special <download-file> tag.  
@@ -483,6 +506,31 @@ function ReadQuery()
         return true;
     } else { return false }
 }
+
+/*
+
+    This is the start of actual functionality, it starts with hooking up a "load" event listener 
+    and timer. Load listener will automatically hide the loader <div> element once page fully loads.
+    However, if something goes wrong and loader stays visible for more than 20 seconds, timer will attempt
+    to display a warning about a potential problem. 
+    
+    Then, system processes the URL query to see if user is trying to request any specific page. 
+    If that's the case, we're instantly calling DisplayCategory() to call the requested page. 
+    If not, system will load up "welcome" page by default. 
+
+    Then, website checks the local storage to see if user has night theme saved. Load it up if that's true.
+
+    MonitorQueryUpdates() hooks up event listener that will check for any updates to the URL. This allows 
+    user to use back/forward buttons in their browser to cycle between pages in their browsing history. 
+    When URL state triggers, it will call DisplayCategory() with the corresponding value from query.
+    
+    EnableMobileMode() will enable special functionality to some of the static DOM elements like body 
+    and navigation <div>, as long as passed boolean returns 'true'. 
+
+*/
+
+// Starting point 
+HandleStart();
 
 // Redirect user to requested article entry if address bar has it, if it's null then force open "welcome".
 let RequiresEntry = ReadQuery();
