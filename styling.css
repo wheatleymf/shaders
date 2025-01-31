@@ -671,3 +671,58 @@ a.dl {
         opacity: 1;
     }
 }
+
+@keyframes loader_spin {
+    0% {
+        transform: rotate( 0deg );
+    }
+    100% {
+        transform: rotate( -360deg );
+    }
+}
+
+@keyframes loader_fade {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+
+/* 
+    Loading placeholder: visible until all elements on the page are fully loaded
+*/
+.placeholder {
+    position: fixed;
+    align-items: center;
+    justify-content: center;
+    flex-flow: column;
+    display: flex;
+
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: 0;
+
+    background: var(--pal-bg);
+    z-index: 9999;
+}
+.placeholder.removing {
+    animation: loader_fade 0.25s ease-in-out;  
+}
+
+.placeholder span {
+    background: #dd5858;
+    padding: 5 25;
+    color: var(--pal-bg);
+}
+
+.placeholder img {
+    animation-name: loader_spin;
+    animation-duration: 3s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+    margin-bottom: 32px;
+}
