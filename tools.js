@@ -83,6 +83,26 @@ let Theme = {
     }
 }
 
+// 
+// Little navigation visibility handler
+//
+let Navigation = {
+    Show: function( isCodeblock ) {
+        // Do nothing if user is swiping around the code snippet area
+        if ( isCodeblock )
+            return;
+        
+        document.querySelector(".navigation").classList.add( "displaying" );
+        document.querySelector(".switch").style.opacity = 1;
+        document.body.style.overflowY = 'hidden';   // Hacky; block scrolling for body element while navigation is open 
+    },
+    Hide: function() {
+        document.querySelector(".navigation").classList.remove( "displaying" );
+        document.querySelector(".switch").style.opacity = 0;
+        document.body.style.overflowY = 'visible'; 
+    }
+}
+
 //
 // Enables mobile-style functionality for the navigation bar on the left.
 // If user swipes to the right, this menu will open. Swiping to the left will close it. 
@@ -93,22 +113,27 @@ function EnableNavigationSlide()
         let touchStartX = 0;
         let touchCurrentX = 0;
         const swipeThreshold = 75;
+
+        let isCodeblock = false;
     
         document.addEventListener("touchstart", function (e) {
             touchStartX = e.touches[0].clientX;
+            
+            // Make sure navigation isn't showing up when user is touching code block or any child elements
+            // This will return either 'true' or 'null', which is probably not good, but it works
+            isCodeblock = e.target.tagName == "CODE" || e.target.closest("CODE"); 
         });
     
         document.addEventListener("touchmove", function (e) {
             touchCurrentX = e.touches[0].clientX;
         });
     
+        // Call .Hide or .Show functions if swipe value meets the threshold criteria in given direction 
         document.addEventListener("touchend", function () {
             if (touchCurrentX < touchStartX - swipeThreshold) {
-                document.querySelector(".navigation").classList.remove("displaying");
-                document.querySelector(".switch").style.opacity = 0;
+                Navigation.Hide();
             } else if (touchCurrentX > touchStartX + swipeThreshold) {
-                document.querySelector(".navigation").classList.add("displaying");
-                document.querySelector(".switch").style.opacity = 1;
+                Navigation.Show( isCodeblock );
             }
         });
     });
@@ -413,12 +438,10 @@ async function DisplayCategory( categoryName )
     // Make sure to run code highlighter on recevied page before rendering it
     hljs.highlightAll( );
 
-    // Hide the navigation menu after selecting the entry 
-    // todo: make this less retarded 
+    // If we are in mobile mode, hide navigation menu after loading new page
     if( isMobile() )
     {
-        document.querySelector(".navigation").classList.remove("displaying");
-        document.querySelector(".switch").style.opacity = 0;
+        Navigation.Hide();
     }
 
     // Add "onclick" event on all images featured in the downloaded article
