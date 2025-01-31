@@ -9,7 +9,27 @@
         shown here. Additionally, you can monitor <a href="https://github.com/wheatleymf/shaders/commits/main/">commit changes on GitHub</a>
         to see all exact changes. This page serves it's purpose as a summary for most important commits. 
     </p>
+    
     <h3>January 2025</h3>
+    <p>
+        <b>January 31st, 2025</b>:
+        <ul>
+            <li>
+                Implemented loading screen boilerplate. It will hide all ugly missing icons and font before page was fully loaded. 
+                If user has encountered an error during load that gets page stuck in loading state forever, they will be notified 
+                in 20 seconds. This screen is visible only during the initial page load.     
+            </li>
+            <li>
+                Navigation menu will no longer show up when user is sliding around the code snippets in articles.
+                Improved code organization for handling navigation in mobile mode.
+            </li>
+            <li>
+                Changed the way <string>h2</string>/<string>h3</string> tags are wrapped to prevent them rendering beyond 
+                phone's viewport maximum width. This isn't perfect but should fix text rendering across all potential 
+                browsers.
+            </li>
+        </ul>
+    </p>
     <p>
         <b>January 30th, 2025</b>: 
         <ul>
