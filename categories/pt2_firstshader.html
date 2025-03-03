@@ -6,31 +6,31 @@
 <div class="Article">
     <p>
         <i>
-            <b>IN THIS ARTICLE: </b> Understanding the anatomy of s&box shaders, figuring out vertex and pixel structs, how do floats work, creating first unlit shader
-            and learning where does data come from. 
+            <b>IN THIS ARTICLE: </b> Understanding the anatomy of s&box shaders, figuring out vertex and pixel structs, how do floats work, creating your first unlit shader
+            and learning where data comes from. 
         </i>
     </p>
     <hr>
 
     <info>
-        If you want to skip whole "figuring out the shader anatomy" part, you can use s&box editor to create a new shader file using a preset. 
+        If you want to skip the whole "figuring out the shader anatomy" part, you can use the s&box editor to create a new shader file using a preset. 
         If you want to learn more about the file anatomy step by step, feel free to follow this part. 
     </info>
 
     <p>
-        It is time to create our first shader! Lets start with something very simple: an <b>unlit shader</b>. What is an unlit shader? This usually 
-        implies a shader that isn't affected by light or shading. It returns color with exact colors that shader had. 
+        It is time to create our first shader! Let's start with something very simple: an <b>unlit shader</b>. What is an unlit shader? This usually 
+        implies a shader that isn't affected by light or shading. It returns color with the exact colors that the shader has. 
     </p>
 
     <h3>Creating a new file</h3>
     <p>
-        Lets create a new blank text file. Give it a <string>.shader</string> file extension, and throw it <string>shaders</string> folder
-        inside of your s&box project. At the moment of writing this article you can create a new template shader right in s&box, but for the sake
-        of a better article's flow and explaining every shader bit step by step, lets create it from scratch. 
+        Let's create a new blank text file. Give it a <string>.shader</string> file extension, and throw it into the <string>shaders</string> folder
+        mentioned in 'Before You Start'. At the moment of writing this article you can create a new template shader right in s&box, but for the sake
+        of this article's flow and explaining every shader bit step by step, let's create it from scratch. 
     </p>
     <p>
         All of your <string>.shader</string> files are compiled by s&box <i>automatically</i>. Whenever there's an update in your shader file, 
-        s&box will catch and attempt to compile it. The only exception are custom <string>.hlsl</string> files referenced in your shader
+        s&box will catch it and attempt to compile it. The only exception are custom <string>.hlsl</string> files referenced in your shader
         as an <string>#include</string>, but they are optional and we don't need to make them right now. 
     </p>
     <p>
@@ -39,8 +39,8 @@
 
     <h2>Sections & Shader Anatomy</h2>
     <p>
-        All shaders have a specific internal structure, and each has it's own purpose. Let me show how this structure generally looks like
-        in an average shader. Don't copy it just yet, lets implement each section by ourselves.
+        All shaders have a specific internal structure, and each has its own purpose. Let me show you what this structure generally looks like
+        in an average shader. Don't copy it just yet, let's implement each section by ourselves.
     </p>
     <pre><code class="language-hlsl">
 // Shader structure, as of November 2024
@@ -96,13 +96,13 @@ PS
 
     <h3>FEATURES block</h3>
     <p>
-        FEATURES allows implementing special options for your shader that you can disable/enable via Material Editor in the left bar.
+        FEATURES allows implementing special options for your shader that you can disable/enable via the Material Editor in the left bar.
         Generally features are needed for defining special <b>shader variants</b>, features variable value are used by <b>static combos</b>.
-        We'll mess around with static combos and see how are they working later.
+        We'll mess around with static combos and see how they work later.
     </p>
     <p>
-        For now, lets implement the bare minimum. We need to include a core HLSL file which contains all built-in options, without these 
-        our shader won't compile, for a whatever reason. Add this into your new shader file:
+        For now, let's implement the bare minimum. We need to include a core HLSL file which contains all built-in options, without these 
+        our shader won't compile, for whatever reason. Add this into your new shader file:
     </p>
     <pre><code class="language-hlsl">
 FEATURES
@@ -111,15 +111,15 @@ FEATURES
 }
     </code></pre>
     <p>
-        If you're wondering what are we including, this <string>#include</string> will add features like "Do not cast shadows", "Render backfaces",
+        If you're wondering what we're including, this <string>#include</string> will add features like "Do not cast shadows", "Render backfaces",
         as well as some other core features. <b>Texture Filtering</b> and <b>Additive Blend</b> won't work out of the box, which is awkward.
     </p>
 
     <h3>MODES block</h3>
     <p>
-        Lets add MODES block. This block defines how our shader is handled in different passes. 
+        Lets add the MODES block. This block defines how our shader is handled in different passes. 
         For now, we need only <string>VrForward()</string>.
-        You can see all available modes on s&box documentation page <a href="https://docs.facepunch.com/s/sbox-dev/doc/modes-SFu3UxPnhm">here</a>. 
+        You can see all available modes on the s&box documentation page <a href="https://docs.facepunch.com/s/sbox-dev/doc/modes-SFu3UxPnhm">here</a>. 
         <ul>
             <li>
                 <string>Forward()</string> is a standard rendering mode. This is where all primary rendering happens, your shader won't 
@@ -127,18 +127,18 @@ FEATURES
                 
                 <p>
                     Forward means <b>forward rendering</b>, this is a rendering method that is utilized by s&box, and Source 2 in general. 
-                    To be more precise, s&box utilizes <b>forward+</b> variant which is more modern and allows handling lighting and bunch of other 
-                    special rendering stuff in a nicer way. 
+                    To be more precise, s&box utilizes the <b>forward+</b> variant which is more modern and allows handling lighting and other 
+                    special rendering in a nicer way. 
                 </p>
             </li>
             <li>
-                <string>Depth()</string> is an optional mode that will make shader write to depth. This is necessary for shadow rendering
+                <string>Depth()</string> is an optional mode that will make the shader write to depth. This is necessary for shadow rendering
                 and any other rendering techniques that rely on depth buffer (also known as <b>z-buffer</b>). 
                 Shaders that have depth mode disabled will not show up in depth buffer.
             </li>
             <li>
                 <string>ToolsVis( S_MODE_TOOLS_VIS )</string> is <b>DEPRECATED</b>, but you may see it in some older shader files. As of now, 
-                it's been deprecated and you don't have to include it anymore. I'll mentioned it here, just in case. 
+                it's been deprecated and you don't have to include it anymore. I'll mention it here, just in case. 
             </li>
         </ul>
     </p>
@@ -150,18 +150,18 @@ MODES
 }            
     </code></pre>
     <info>
-        As of <a href="https://commits.facepunch.com/514155">January 30th, 2025</a> default rendering mode has been renamed from 
+        As of <a href="https://commits.facepunch.com/514155">January 30th, 2025</a> the default rendering mode has been renamed from 
         <string>VrForward()</string> to <string>Forward()</string>. Old shaders that have been compiled with the old name before 
         this change will continue to work, but you'll need to rename this mode if you want to compile it again. 
 
         <p>
-            If you're trying to restore old shader from early s&box days, you may want to read about all important shader changes 
-            in a dedicated article, <article-ref link="oldshaders">Relics of the Past</article-ref>
+            If you're trying to restore old shaders from early s&box days, you may want to read about all important shader changes 
+            in a dedicated article: <article-ref link="oldshaders">Relics of the Past</article-ref>
         </p>
     </info>
     <warning>
         <string>Depth()</string> will be replaced with <string>DepthNormal()</string> in the near future. I don't know if old shaders
-        will continue working, but you'll definitely need to replace it with DepthNormal it's out. It should bring support for G-buffer,
+        will continue working, but you'll definitely need to replace it with DepthNormal once it's out. It should bring support for G-buffer,
         which is a nice addition. 
     </warning>
 
@@ -172,8 +172,8 @@ MODES
         texture input/variable definitions inside the COMMON block, you will be able to access them from both vertex and fragment shader.
     </p>
     <p>
-        Since you don't need to add anything that requires access from multiple shader stage yet, lets just include a core HLSL file that automatically
-        imports all necessary stuff to get our shader compiling and move forward.
+        Since you don't need to add anything that requires access from multiple shader stages yet, let's just include a core HLSL file that automatically
+        imports all necessary stuff to get compile our shader and move forward.
     </p>
     <pre><code class="language-hlsl">
 COMMON
@@ -187,7 +187,7 @@ COMMON
     <p> 
         Before you can use it to build and render your mesh with this new shader, this data must be
         sorted into an appropriate struct, with correctly set up <b><a href="https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-semantics">semantics</a></b>. Luckily, s&box comes with pre-built vertex and pixel input structs,
-        which means we don't have to set up any of these by ourselves. (you can always do it from scratch if you want to, but for now lets 
+        which means we don't have to set up any of these by ourselves. (you can always do it from scratch if you want to, but for now let's 
         stick with what s&box offers to us!)
     </p>
     <ul>
@@ -212,7 +212,7 @@ struct VertexInput
 };
     </code></pre>
     <p>
-        Perfect! When you reference this struct in vertex shader, it'll automatically read the struct data from included .hlsl file.
+        Perfect! When you reference this struct in vertex shader, it'll automatically read the struct data from the included .hlsl file.
         If you want to read more about vertex and pixel structs, s&box docs have a <a href="https://docs.facepunch.com/s/sbox-dev/doc/default-vertex-and-pixel-shader-inputs-WAuOKVmkZ5">dedicated page for them</a>.
     </p>
 
@@ -221,7 +221,7 @@ struct VertexInput
         Let's do the same thing as with vertex struct. Use the built-in struct, it will be more than enough for us.
         When vertex shader finishes transforming and manipulating all vertex things, it returns a <string>PixelInput</string> object. This object
         is then used by fragment shader as a source of data to work with. This is where you are going to grab all things from: texture coordinates,
-        pixel position, viewport UV, mesh geometry normals, etc.. 
+        pixel position, viewport UV, mesh geometry normals, et cetera... 
     </p>
     <p>
         Both structs are utilized by s&box default shading model, so nearly all s&box shaders you will find online are utilizing these two 
@@ -239,7 +239,7 @@ struct PixelInput
 
     <h2>Vertex Shader</h2>
     <p>
-        As I've mentioned a few times in this article, vertex shader grabs the structured mesh data and does bunch of manipulations.
+        As I've mentioned a few times in this article, vertex shader grabs the structured mesh data and performs a bunch of manipulations.
         Generally, this is where you may want to calculate geometry 
         normals, and transform vertex position into the projection space. Optionally, this is where you can also manipulate vertex 
         positions, which will affect the shape of a mesh. 
@@ -247,28 +247,28 @@ struct PixelInput
     </p>
     <h3>Processing Vertices</h3>
     <p>
-        s&box has two main vertex helper functions that handle all these routine operations automatically, which means you don't need to worry about 
+        S&box has two main vertex helper functions that handle all these routine operations automatically, which means you don't need to worry about 
         instancing and setting up projection space yourself. These functions are:
         <ul>
             <li>
                 <string>ProcessVertex( VertexInput i )</string> - grabs the vertex shader input data and does most basic stuff for you:
-                set up instancing and skinning, and then calculate vertex position in world space with geometry normals and tangents.
+                set up instancing and skinning, and then calculate vertex position in the world space with geometry normals and tangents.
                 This function takes <string>VertexInput</string> vertex and returns a new vertex with a type of <string>PixelInput</string>.
                 <br><br>
-                You can use data from object this function returns to do any sorts of manipulations: vertex displacement, normal/UV manipulations, 
+                You can use data from the object this function returns to do any sorts of manipulations: vertex displacement, normal/UV manipulations, 
                 and anything else you'd like.
             </li>
             <li>
-                <string>FinalizeVertex( PixelInput o )</string> - before returning the vertex, it's position must be converted into the 
+                <string>FinalizeVertex( PixelInput o )</string> - before returning the vertex, its position must be converted into the 
                 projection space. This is what FinalizeVertex does.
             </li>
         </ul>
     </p>
-    <p>These vertex helpes are documented on the <a href="https://docs.facepunch.com/s/sbox-dev/doc/vertex-helpers-WfXQx29bUF">s&box documentation website</a></p>
+    <p>These vertex helpers are documented on the <a href="https://docs.facepunch.com/s/sbox-dev/doc/vertex-helpers-WfXQx29bUF">s&box documentation website</a></p>.
 
     <h3>Implementing the Vertex Shader</h3>
     <p>
-        Okay, at first of all, create a new block like with previous sections: add <string>VS</string> and then add brackets on the next line. Inside this block,
+        Okay, first of all, create a new block like with the previous sections: add <string>VS</string> and then add brackets on the next line. Inside this block,
         we need to include another core file, which is <string>common/vertex.hlsl</string>. Your section currently should look like this:
     </p>
     <pre><code class="language-hlsl">
@@ -280,7 +280,7 @@ VS
 }
     </code></pre>
     <p>
-        Next step is adding the <b>main function</b> of a vertex shader. Main function in vertex shader is called <string>MainVs( input )</string>,
+        Next step is adding the <b>main function</b> of a vertex shader. The main function in vertex shader is called <string>MainVs( input )</string>,
         where <string>input</string> is a vertex input struct you have just defined. In your case, it's <string>VertexInput</string>. Vertex shader must 
         return a finalized vertex with a type of <string>PixelInput</string> that will be used by a fragment shader. 
     </p>
@@ -305,10 +305,10 @@ VS
     </p>
     <p>
         Declare a new variable with <string>PixelInput</string> type that is initialized by <string>ProcessVertex( i )</string>.
-        Give it any name - it doesn't matter how is it called. Most shaders keep the name very minimal, something like <string>o</string>.
+        Give it any name - it doesn't matter what it is called. Most shaders keep the name very minimal, something like <string>o</string>.
     </p>
     <p>
-        And now, since we don't plan editing anything in this vertex data, just return <string>FinalizeVertex( o )</string>. Your vertex shader 
+        And now, since we don't plan on editing anything in this vertex data, just return <string>FinalizeVertex( o )</string>. Your vertex shader 
         is now ready! It will return a <string>PixelInput</string> object that you will utilize in fragment shader.
     </p>
     <pre><code class="language-hlsl">
@@ -334,8 +334,8 @@ VS
 
     <h2>Pixel Shader</h2>
     <p>
-        This is a final stage of your shader. This is where we are going to manipulate the color and return it. For now, let's do a simple task: 
-        set up a simple, solid color and return it. This will make appear whole material with a certain color, unlit. 
+        This is the final stage of your shader. This is where we are going to manipulate the color and return it. For now, let's do a simple task: 
+        set up a simple, solid color and return it. This will change the appearance of the whole material with a certain color, unlit. 
     </p>
     <h3>Adding the main function</h3>
     <p>
@@ -350,7 +350,7 @@ VS
         It is a semantic that indicates that fragment shader returns a color. You probably won't ever need to touch this bit, just keep it as is. 
     </p>
     <p>
-        Since we're doing a simple unlit shader, we're not utilizing anything from <string>PixelInput</string> data yet, but you will heavily
+        Since we're doing a simple unlit shader, we're not utilizing anything from the <string>PixelInput</string> data yet, but you will heavily
         utilize it in future articles when we move from unlit shader to a full, proper lit shader. 
     </p>
     <pre><code class="language-hlsl">
@@ -368,8 +368,8 @@ PS
     <h3>Quick note: "float" components</h3>
     <p>
         You're probably wondering, <b>what the hell is a float4?</b> If you know how <string>Vector4</string> (or <string>Vector3</string>) works,
-        then you can guess how floats work! Number after the <string>float</string> indicates how many components is in this vector. You can have
-        floats types from <string>float</string> (single component vector) to <string>float4</string> (four component vector).
+        then you can guess how floats work! Number after the <string>float</string> indicates how many components are in this vector. You can have
+        float types from <string>float</string> (single component vector) to <string>float4</string> (four component vector).
     </p>
     <p>
         Each component of a float vector can be accessed with suffixes <string>.x</string>, <string>.y</string>, <string>.z</string> and <string>.w</string>.
@@ -382,35 +382,35 @@ PS
         shader yet.
     </p>
     <p>
-        Using suffixes, you can access one or several channels of a <string>float</string> vector at once, swizzle them or extract into a new variable with less components.
-        <string>int</string> and <string>uint</string> can consists of multiple components too, just like floats. I'll provide some more information on floats, how to use suffixes
+        Using suffixes, you can access one or several channels of a <string>float</string> vector at once, swizzle them or extract into a new variable with fewer components.
+        <string>int</string> and <string>uint</string> can consist of multiple components too, just like floats. I'll provide some more information on floats, how to use suffixes
         and some other cool stuff in the next article where we'll add a texture to our unlit shader.
     </p>
 
     <h3>Adding color and returning it</h3>
     <p>
-        This is very simple. This code can be much more compact, but just for the sake of learning we'll do it in a bit longer way. Create a new <string>float3</string>
+        This is very simple. This code can be much more compact, but just for the sake of learning we'll do it in a verbose way. Create a new <string>float3</string>
         variable, give it any name you like. For now, lets stick with "col". Initialize it by creating a new <string>float3</string> with values set to <string>1, 0, 0</string>.
     </p>
     <p>
-        Your like should look like this: <string>float3 col = float3( 1, 0, 0 );</string>
+        Your line should look like this: <string>float3 col = float3( 1, 0, 0 );</string>
     </p>
     <p>
         What does <string>float3( 1, 0, 0 )</string> do? We've just created a new three-component float with red (or X) channel set as <string>1</string>, while others are <string>0</string>.
-        This will represent a pure red color. If you add <string>0.5</string> to green channel, then you'll get an orange color. If you add <string>1</string> to blue channel, 
-        you'll get a bright pink color. If you set them all to value of <b>1</b>, then you'll get white color. Have you ever seen the color picker window in Photoshop, with R, G, B input fields ranging from 0 to 255? It's the same here,
+        This will represent a pure red color. If you add <string>0.5</string> to the green channel, then you'll get an orange color. If you add <string>1</string> to the blue channel, 
+        you'll get a bright pink color. If you set them all to value of <b>1</b>, then you'll get the white color. Have you ever seen the color picker window in Photoshop, with R, G, B input fields ranging from 0 to 255? It's the same here,
         except it's in 0-1 range!
     </p>
     <info>
-        Most values in shaders are represented within <b>[0 - 1]</b> range. Going beyond this range may cause visual mess. You can use <string>saturate( float in )</string> to clamp
-        your valie in 0-1 range if you expect that it'll be larger than that in realtime. Not sure if it is a good advice, but you probably want to write your math 
+        Most values in shaders are represented within <b>[0 - 1]</b> range. Going beyond this range may cause a visual mess. You can use <string>saturate( float in )</string> to clamp
+        your value in 0-1 range if you expect that it'll be larger than that in realtime. Not sure if it is a good advice, but you probably want to write your math 
         in a way where you don't have to rely on <string>saturate()</string> too much.
         <br><br>
         There's an exception with normals - they are operating in <b>[-1 - 1]</b> range. 
     </info>
     <p>
-        Then we just have to return the color, but inside a <string>float4</string> vector. Since our color just represents <b>RGB</b> without <b>A</b> component (opacity),
-        shader won't compile because expected type is <b>float4</b>. Do <string>float4( col, 1 )</string>, and return it.
+        Then we just have to return the color, but inside a <string>float4</string> vector. Since our color just represents <b>RGB</b> without the <b>A</b> component (opacity),
+        the shader won't compile because the expected type is <b>float4</b>. Do <string>float4( col, 1 )</string>, and return it.
     </p>
     <pre><code class="highlight-hlsl">
 PS
@@ -428,9 +428,9 @@ PS
     </code></pre>
     <p>
         Combining or splitting floats is very easy, as you can see. You can initialize float4 by filling out all four values, or just add existing multi-component 
-        float and then fill out the value for missing component, like we did above. <string>float3 col</string> has RGB components already, and we're only missing 
+        floats and then fill out the value for missing components, like we did above. <string>float3 col</string> has the RGB components already, and we're only missing 
         component <string>A</string>, so we just created a new float4 with RGB components filled out by values from our variable <string>col</string>, and then 
-        added <string>1</string> for alpha component. 1 in alpha component will be usually interpreted as "fully opaque".
+        added <string>1</string> for alpha component. 1 in alpha component will usually be interpreted as "fully opaque".
     </p>
     <p>
         Before this article ends, lets simplify our code a little:
@@ -448,21 +448,27 @@ PS
     </code></pre>
     <p>
         Yeah! Instead of creating variables for each value seperately, we can just do this instead. Create a <string>float4 vector</string>, where we create a new
-        <string>float3</string> with pure red color, which automatically fills out RGB values, and then set float4's alpha component to 1, and then instantly return it. You can do it this way. But this is your code,
+        <string>float3</string> with pure red color, which automatically fills out RGB values, and then sets float4's alpha component to 1 and instantly returns it. You can do it this way. But this is your code,
         and I trust that you know better what's more convenient for you. :-)
     </p>
+
+    <h3>Viewing your shader</h3>
+    Now that you have created your first unlit shader, you will want to view it in s&box. To do this, you'll have to open the <b>Material Editor</b> window. In order to do this,
+    right-click inside of the <b>Asset Browser</b> in s&box and create a new <b>Material</b>. The name does not matter, I called mine 'shader_material.vmat'. When you double-click
+    it, you will see the <b>Material Editor</b> window. You can click on the top left of this window, where it says 'example' in green, to select a different shader. Select the
+    shader you have made to load it.
 
     <img src="/media/pt2_shaderresult.png">
     <p>
         And here you go, you've got your first manually written unlit shader. Ignore these two random texture inputs: we'll get rid of them and add our own 
-        in the next article. Also, do you see all stuff on the left, like "rendering" and such? These are all the features included from our 
+        in the next article. Also, do you see all the stuff on the left, like "rendering" and such? These are all the features included from our 
         <string>#import "common/features.hlsl"</string> in <string>FEATURES</string> block, which means it worked!
     </p>
 
     <h3>EXTRA: My compiler is failing!</h3>
     <p>
         That's fine! You will probably deal with this a lot. All shader compiler logs are stored in your console. If something is failing to compile, 
-        it will dump all relevant information, and point to potential cause of the problem. It is also pretty good at catching typos and other 
+        it will dump all relevant information, and point to the potential cause of the problem. It is also pretty good at catching typos and other 
         basic mistakes.
     </p>
 
