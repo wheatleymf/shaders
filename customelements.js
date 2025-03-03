@@ -126,7 +126,37 @@ class NavigationItem extends HTMLElement {
     }
 }
 
+class Contributor extends HTMLElement
+{
+    constructor()
+    {
+        super();
+
+        let name = this.getAttribute( "name" );
+        let url = this.getAttribute( "url" );       // URL as any link to user's website, or GitHub link
+        let icon = this.getAttribute( "icon" );     // Expected to be URL too 
+
+        let div = document.createElement( "div" );
+        let img = document.createElement( "img" );
+        let text = document.createElement( "div" );
+
+        img.setAttribute( "src", icon );
+        text.textContent = name;
+        text.classList.add( "name" );
+        div.classList.add( "contributor" );
+
+        div.appendChild( img );
+        div.appendChild( text );
+        
+        this.appendChild( div );
+        this.onclick = function() {
+            window.open( url, "_blank" );
+        }
+    }
+}
+
 customElements.define( "download-file", DownloadElement );
 customElements.define( "article-header", ArticleHeader );
 customElements.define( "article-ref", ArticleRef );
-customElements.define( "nav-item", NavigationItem);
+customElements.define( "nav-item", NavigationItem );
+customElements.define( "contributor-tag", Contributor );
