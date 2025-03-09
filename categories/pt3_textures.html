@@ -101,7 +101,7 @@ CreateInputTexture2D( AlbedoMap, Srgb, 8, "", "_color", "My Material,10/10", Def
     </p>
     
     <pre><code class="language-hlsl">
-Texture2D g_tColor < Channel( RGB, Box( Color ), Srgb ); OutputFormat( BC7 ); SrgbRead( true ); >;
+Texture2D g_tColor < Channel( RGB, Box( AlbedoMap ), Srgb ); OutputFormat( BC7 ); SrgbRead( true ); >;
     </code></pre>
     <p>
         Wow! We haven't seen <string> < ... >; </string> brackets before. What is this? What's this stuff inside? If I remember correctly, 
