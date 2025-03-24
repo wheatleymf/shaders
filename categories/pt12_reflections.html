@@ -1,0 +1,401 @@
+<article-header
+    name="Screenspace Reflections"
+    icon="ssid_chart"
+    category="shader fundamentals"    
+></article-header>
+<div class="Article">
+    <p>
+        <i>
+            <b>IN THIS ARTICLE: </b> using frame buffers for another purpose - screenspace reflections, using built-in helper
+            screenspace tracing class. 
+        </i>
+    </p>
+    <hr>
+    <info>
+        This is covered in <a href="https://docs.facepunch.com/s/sbox-dev/doc/screen-space-tracing-xZSBSgQV7T">Facepunch Docs</a>
+        already, however I still want to go through this in slightly more detail as a part of this shader "course". Most of the 
+        code was taken from s&box, so credit goes to all the beautiful shader people from Facepunch. 
+        <br><br>
+        s&box has a dedicated <a href="https://docs.facepunch.com/s/sbox-dev/doc/dynamic-reflections-fpqeZ8jNCo">Dynamic Reflections</a>
+        mode that you can use for out-of-box reflections. This article is useful only if you're wondering about implementing these 
+        reflections yourself. 
+    </info>
+
+    <video controls autoplay loop>
+        <source src="http://files.smallfi.sh/u/sbox-dev_24-03-2025_14-07.mp4" type="video/mp4">
+    </video>
+
+    <h2>Introduction</h2>
+    <p>
+        You probably know that there are many ways to handle reflections in games. You can render the scene using separate camera 
+        and specific projection matrix, or use fancy raytracing... but all of them aren't cheap at all. This is why big graphics nerds 
+        have come up with <b>screenspace reflections</b> many years ago. Also, it'll be very easy to implement them in s&box.
+    </p>
+    <p>
+
+    </p>
+    <p>
+        Screenspace reflections (normally) do not require things like rendering scene twice, and do not perform lots of crazy expensive math.
+        All you need is a frame buffer. Simply put, this is a relatively cheap way to add reflections. 
+        You won't even need to slap DLSS or other hallucinating AI bullshit to compensate the horrendous performance.  
+        There's an obvious downside that it limits amount of stuff reflected on screen, but in most cases it still looks pretty!
+        So let's appreciate this technology and try implement it today. 
+    </p>
+
+    <h3>ScreenSpace class</h3>
+    <p>
+        s&box has a very handy HLSL class called <b>ScreenSpace</b>. It handles all math for raymarching and calculating hit 
+        position in the clip space. This class is already included in your shader file in <string>#include "common/pixel.hlsl"</string>.
+    </p>
+    <p>
+        This class has only a single function called <string>ScreenSpace::Trace( ... )</string>. This is what we will need. 
+        Here's what you need for it:
+    </p>
+    <pre><code class="language-hlsl">
+TraceResult Trace(const float3 Position, const float3 Direction, const float2 vPositionSs, uint nMaxSteps = 64, int nInitialMip = 0, int nDownsampleRatio = 0 );
+    </code></pre>
+    <p>
+        And now let's look at each argument...
+        
+        <ul>
+            <li>
+                <string>Position</string> expects a vector that represents pixel's <b>world-space</b> position. As a reminder, you can get 
+                world-space pixel coordinate position using formula <string>i.vPositionWithOffsetWs + g_vCameraPositionWs</string>.
+            </li>
+            <li>
+                <string>Direction</string> expects a vector that represents the reflection ray. I will show how can you calculate this ray 
+                later in this article. 
+            </li>
+            <li>
+                <string>vPositionSs</string> expects XY components of <b>vPositionSs</b> from your PixelInput struct. 
+                So, you just have to simply pass <string>i.vPositionSs.xy</string> here, assuming that this struct is called <string>i</string>
+                in your code. 
+            </li>
+            <li>
+                <b>optional</b> <string>nMaxSteps</string> is the maximum amount of steps for the ray marching. By default, it's set to <b>64</b>,
+                which is optimal for most cases. You can adjust step amount as you wish. 
+            </li>
+            <li>
+                There's also <string>nInitialMip</string> and <string>nDownsampleRatio</string> arguments, (which are also optional) 
+                but I will omit them in this article. Facepunch docs do not mention them, and I was not able to find a good example how to use them, sorry. 
+                If you're curious, increasing <string>nInitialMip</string> can be beneficial in some cases, but if value goes too high, reflections accuracy 
+                will get worse.  
+            </li>
+        </ul>
+    </p>
+
+    <h3>TraceResult struct</h3>
+    <p>
+        Tracing function returns data inside of a <b>TraceResult</b> struct. Here's a quick overview of how it looks like:
+    </p>
+    <pre><code class="language-hlsl">
+struct TraceResult
+{
+    float3 HitClipSpace;
+    float Confidence;    
+    bool ValidHit;       
+};
+    </code></pre>
+    <p>
+        <ul>
+            <li>
+                <string>HitClipSpace</string> is a vector that represents the hit position of given ray in clip space coordinates. 
+                This is not world-space coordinates! You will need to transform them later.
+            </li>
+            <li>
+                <string>Confidence</string> is a float in [0-1] range that represents how accurate this "hit" was. Rays cannot trace 
+                to areas that are not visible on screen, or trace things that you can't see from your perspective, 
+                (like bottom of the prop) so if it hits something near screen boundaries or invisible part of the object, hit confidence
+                will go down.
+            </li>
+            <li>
+                <string>ValidHit</string> is a boolean that tells you if current trace hit anything useful at all. 
+            </li>
+        </ul>
+    </p>
+    <p>
+        <string>Confidence</string> and <string>ValidHit</string> will be useful to eliminate inaccurate/invalid trace results. 
+        This will always happen since we're tracing in screenspace, where lots of thing can become unreachable for tracing 
+        depending on your angle/position - so this data will be very useful. 
+    </p>
+
+    <h2>Implementing Reflections</h2>
+    <p>
+        Reflections require a frame buffer. If you haven't added frame buffer in your shader yet, here's a quick reminder 
+        how it's done: 
+    </p>
+    <pre><code class="language-hlsl">
+BoolAttribute( bWantsFBCopyTexture, true );
+BoolAttribute( translucent, true );
+Texture2D FrameBufferCopy < Attribute( "FrameBufferCopyTexture" ); SrgbRead( true ); >;
+    </code></pre>
+    <p>
+        Throw this anywhere in your pixel shader section outside of <string>MainPs</string> function. 
+    </p>
+
+    <h3>Preparing vectors</h3>
+    <p>
+        Before calling this method, we will need to prepare bunch of data that is required by screenspace tracing. First, get 
+        the world-space pixel position using the formula above. 
+    </p>
+    <pre><code class="language-hlsl">
+float3 vPositionWs = i.vPositionWithOffsetWs + g_vCameraPositionWs;
+    </code></pre>
+    <p>
+        Then, we have to calculate the reflection ray vector. First, you need to get the vector that represents direction from camera 
+        to pixel's world-space position. There's a built-in function that can do that for you. After that, use native HLSL function 
+        called <string>reflect</string> to reflect this vector against normals: 
+    </p>
+    <pre><code class="language-hlsl">
+float3 vCameraToPositionDirWs = CalculateCameraToPositionDirWs( vPositionWs );
+float3 vRayWs = reflect( vCameraToPositionDirWs, m.Normal );
+    </code></pre>
+    <p>
+        <b>Important!</b> You must pass <i>world-space</i> normals in here, not tangent-space ones. This means that normals at this point
+        of your shader code must be already transformed using <string>TransformNormal</string> function. 
+    </p>
+    <p>
+        If you are not sure why are we doing this, here's a horrible illustration of how calculated ray vector looks like in space:
+    </p>
+    <img src="/media/pt12_rays.png">
+    <p>
+        Good! Now we have everything we need to start screenspace tracing. Let's call the function:
+    </p>
+    <pre><code class="language-hlsl">
+TraceResult result = ScreenSpace::Trace( vPositionWs, vRayWs, i.vPositionSs.xy );
+    </code></pre>
+    <p>
+        Now, this function will return the data as a <b>TraceResult</b> struct. Let's process it. 
+        As I've mentioned earlier, there's always a good chance that some pixels will return an invalid hit. To avoid computing 
+        unnecessary data, let's make sure that all further calculations are done only if <string>result.ValidHit</string> is true.  
+    </p>
+    <pre><code class="language-hlsl">
+float3 vCameraToPositionDirWs = CalculateCameraToPositionDirWs( vPositionWs );
+float3 vRayWs = reflect( vCameraToPositionDirWs, m.Normal );
+TraceResult result = ScreenSpace::Trace( vPositionWs, vRayWs, i.vPositionSs.xy );
+
+// Continue calculating reflections only if hit was valid
+if ( result.ValidHit )
+{
+    ...
+}        
+    </code></pre>
+
+    <h3>Transforming clip-space coordinates</h3>
+    <p>
+        Obviously, we will not be able to use float3 vector in clip-space coordinates as UV to sample the frame buffer. 
+        We will need to do a bunch of transforms first. Let's start with converting clip-space coordinates into world space. 
+        s&box has a built-in function for this, called <string>ScreenSpaceToWorldSpace</string>: 
+    </p>
+    <pre><code class="language-hlsl">
+float3 vHitWs = ScreenSpaceToWorldSpace( result.HitClipSpace.xyz ) + g_vCameraPositionWs.xyz;
+    </code></pre>
+    <p>
+        Continue by calculating screen coordinates for the frame buffer texture. These coordinates must be an <string>int2</string>
+        vector. 
+    </p>
+    <p>
+        Why? Because unlike in previous article, you are going to read this texture using <a href="https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-to-load">Texture2D.Load</a> method. 
+        Instead of sampling pixel, filtering and interpolating it, this function reads the pixel at given texture coordinates directly.
+        These dimensions are not in <string>[0-1]</string> range. For example, if given texture has dimensions of 1920x1080 pixels, 
+        then you will be able to load any pixel within these dimensions using the <string>.Load</string> function.   
+    </p>
+    <p>
+        Luckily, s&box has another helper function that allows you reprojecting world-space coordinates into appropriate coordinates 
+        that will work with the frame buffer dimensions. It is called <string>ReprojectFromLastFrameSs</string>.
+    </p>
+    <pre><code class="language-hlsl">
+int2 vFrameBufferHitSs = ReprojectFromLastFrameSs( vHitWs ).xy;
+    </code></pre>
+    <p>
+        At last, let's load the pixel at given coordinates that we have just calculated in <string>vFrameBufferHitSs</string>. 
+        <string>Texture2D.Load</string> accepts <b>uint3</b> vector, where XY are the coordinates, and Z is a mip level. In this case, 
+        mip level should be 0: 
+    </p>
+    <pre><code class="language-hlsl">
+float3 vReflectionColor = FrameBufferCopy.Load( uint3( vFrameBufferHitSs, 0 ) ).rgb;
+    </code></pre>
+
+    <h3>Applying Reflections</h3>
+    <p>
+        There are several ways to add reflections to the surface. If you're using the standard shading model, then you can use 
+        <b>Emission</b> slot in your material struct. It is the best option as it doesn't clash with the model shading.
+    </p>
+    <p>
+        Basically, "emission" is a pixel that is applied <i>after</i> shading model has finished calculating direct/ambient lighting. 
+        This is why emission maps glow and ignore shading. And this is what we need here. 
+    </p>
+    <p>
+        Do not just simply copy reflection color to your emission slot. Screenspace reflections can return invalid/inaccurate pixels.
+        They will appear as weirdly stretched/square-shaped spots, and we don't want that. 
+        Instead, use <string>lerp</string> function and <string>Confidence</string> property from <b>TraceResult</b> struct 
+        to eliminate any bad reflection pixels.  
+    </p>
+    <pre><code class="language-hlsl">
+m.Emission = lerp( m.Emission, vReflectionColor, result.Confidence );
+    </code></pre>
+    <p>
+        Your final reflection code should look something like this:
+    </p>
+    <pre><code class="language-hlsl">
+float3 vCameraToPositionDirWs = CalculateCameraToPositionDirWs( vPositionWs );
+float3 vRayWs = reflect( vCameraToPositionDirWs, m.Normal );
+TraceResult result = ScreenSpace::Trace( vPositionWs, vRayWs, i.vPositionSs.xy );
+
+// Continue calculating reflections only if hit was valid
+if ( result.ValidHit )
+{
+    // Reproject from clip-space to world-space coordinates 
+    float3 vHitWs = ScreenSpaceToWorldSpace( result.HitClipSpace.xyz ) + g_vCameraPositionWs.xyz;
+    // Calculate screen-space coordinates within frame buffer texture dimensions
+    int2 vFrameBufferHitSs = ReprojectFromLastFrameSs( vHitWs ).xy;
+    // Load the pixel in frame buffer using appropriate texture coordinates  
+    float3 vReflectionColor = FrameBufferCopy.Load( uint3( vFrameBufferHitSs, 0 ) ).rgb;
+
+    // Apply reflection color to emission map, eliminate bad reflection pixels using hit confidence value
+    m.Emission = lerp( m.Emission, vReflectionColor, result.Confidence );
+}   
+    </code></pre>
+    <p>
+        Now compile the shader and see what happens! If you did everything right, you should see that you're seeing reflections 
+        for everything that is visible in your viewport. 
+    </p>
+    <img src="/media/pt12_reflections.png">
+    <info>
+        Frame buffer does not render objects that have <string>translucent</string> bool enabled in their shader. This means that 
+        any material with transparency will not appear in frame buffers. Things like foliage will not appear in there. If you 
+        know a workaround for this, please let me know. 
+    </info>
+    <p>
+        This is obviously not perfect, and doesn't look so fancy than in some modern games, but this is one of the simplest
+        and cheapest ways to add realtime reflections into the shader. Have fun! :-) 
+    </p>
+
+    <h2>Extra: Blur Reflections</h2>
+    <p>
+        Here's a little, advanced extra. Current implementation will return reflections as is, regardless of your material
+        roughness. This is not how reflections work in real life: rough materials won't have smooth, clean reflections.
+        Rough surfaces will have more blurry looking light/surface reflections.
+    </p>
+    <p>
+        If you want more realistic and flexible reflections that will work with any material configuration, we will need to
+        do some adjustments in the code. 
+    </p>
+
+    <h3>Dithered Noise</h3>
+    <p>
+        Let's start by calculating dither noise. Dithering is good for realtime blurring, and is pretty cheap. First, calculate 
+        randomized screen-space UVs for the noise texture:  
+    </p>
+    <pre><code class="language-hlsl">
+float2 vDitherCoord = mad( i.vPositionSs.xy, ( 1.0f / 256.0f ), g_vRandomFloats.xy );
+    </code></pre>
+    <p>
+        <a href="https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/mad">mad()</a> performs an arithmetic multiply/add 
+        operations on three values. In this case, it will calculate the value of <string>i.vPositionSs.xy * ( 1.0f / 256.0f ) + g_vRandomFloats.xy</string>.
+        If you're curious, <string>g_vRandomFloats</string> is a built-in s&box <b>float4</b> variable that generates random float values 
+        every frame. Every value in each component is random. 
+    </p>
+    <p>
+        We have the coordinates now, but we don't have noise for dithering yet. Let's use blue noise: there's a built-in Texture2D that 
+        you can access anytime. Using dithered coords, we will get nice constantly updating dithering noise, which is suitable for cheap blurring.   
+    </p>
+    <pre><code class="language-hlsl">
+float3 vNoise = g_tBlueNoise.Sample( g_sPointWrap, vDitherCoord.xy ).rgb;
+    </code></pre>
+
+    <h3>GGX Importance Sampling</h3>
+    <p>
+        I am a big math noob so I will not try to explain what does this mean exactly, but roughness plays an important role 
+        at simulating very nice, realistic shading on models. It affects how normal map will interact with the surface, 
+        and how light rays reflect on them. It's very good at configuring surface's microdetail: very little bumps on the surface.
+    </p>
+    <p>
+        In our case, this will be used to randomize surface normals by material's roughness. This will result in somewhat smooth 
+        reflection blur. Higher roughness value = more blur, lower roughness = less blur, with no distortion/blurring at 0 roughness.  
+    </p>
+    <p>
+        Here's a copy of this function that I shamelessly took from s&box dynamic reflections code. This will calculate new,
+        randomized normal vector based on roughness value.
+    </p>
+    <pre><code class="language-hlsl">
+float3 ReferenceImportanceSampleGGX(float2 Xi, float roughness, float3 N)
+{
+    float a = roughness * roughness;
+
+    float phi = 2.0 * 3.141592 * Xi.x;
+    float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a * a - 1.0) * Xi.y));
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+
+    float3 H;
+    H.x = sinTheta * cos(phi);
+    H.y = sinTheta * sin(phi);
+    H.z = cosTheta;
+
+    // Tangent space to world space
+    float3 upVector = abs(N.z) < 0.999 ? float3(0, 0, 1) : float3(1, 0, 0);
+    float3 T = normalize(cross(upVector, N));
+    float3 B = cross(N, T);
+
+    float3 sampleDirection = H.x * T + H.y * B + H.z * N;
+
+    if ( any(isnan(sampleDirection) ) )
+        return N;
+
+    return normalize(sampleDirection);
+}
+    </code></pre>
+    <p>
+        Put this code somewhere outside of <string>MainPs</string>. Now when we have everything for blurring, let's get the 
+        edited normal vector, and then use it for the tracing. 
+    </p>
+    <pre><code class="language-hlsl">
+float3 H = ReferenceImportanceSampleGGX( vNoise.rg, m.Roughness, m.Normal);
+    </code></pre>
+    <p>
+        Update your <string>vRayWs</string> vector with the following code:
+    </p>
+    <pre><code class="language-hlsl">
+float3 vRayWs = reflect( vRayWs, H );
+    </code></pre>
+    <p>
+        This is pretty much done. Now compile the shader and see what happens! Try adjusting the roughness on your material
+        and see how it gets more blurry if you increase it's value. Here's a complete code, minus the GGX function outside of MainPs:
+    </p>
+    <pre><code class="language-hlsl">
+// Calculate dithered screen-space UVs 
+float2 vDitherCoord = mad( i.vPositionSs.xy, ( 1.0f / 256.0f ), g_vRandomFloats.xy );
+float3 vNoise = g_tBlueNoise.Sample( g_sPointWrap, vDitherCoord.xy ).rgb;
+
+// Calculate camera-to-pixel direction vector, GGX importance sample, and final reflection vector 
+float3 vCameraToPositionDirWs = CalculateCameraToPositionDirWs( vPositionWs );
+float3 H = ReferenceImportanceSampleGGX( vNoise.rg, m.Roughness, m.Normal);
+float3 vRayWs = reflect( vCameraToPositionDirWs, H );
+
+TraceResult result = ScreenSpace::Trace( vPositionWs, vRayWs, i.vPositionSs.xy );
+
+// Continue calculating reflections only if hit was valid
+if ( result.ValidHit )
+{
+    // Reproject from clip-space to world-space coordinates 
+    float3 vHitWs = ScreenSpaceToWorldSpace( result.HitClipSpace.xyz ) + g_vCameraPositionWs.xyz;
+    // Calculate screen-space coordinates within frame buffer texture dimensions
+    int2 vFrameBufferHitSs = ReprojectFromLastFrameSs( vHitWs ).xy;
+    // Load the pixel in frame buffer using appropriate texture coordinates  
+    float3 vReflectionColor = FrameBufferCopy.Load( uint3( vFrameBufferHitSs, 0 ) ).rgb;
+
+    // Apply reflection color to emission map, eliminate bad reflection pixels using hit confidence value
+    m.Emission = lerp( m.Emission, vReflectionColor, result.Confidence );
+}   
+    </code></pre>
+    <p>
+        Here's a video how I am adjusting surface roughness in 0-1 range, and how it affects clarity of reflections.  
+    </p>
+    <video controls autoplay loop>
+        <source src="http://files.smallfi.sh/u/sbox-dev_24-03-2025_13-50.mp4" type="video/mp4">
+    </video>
+    <p>
+        Also, you probably might want to wrap the reflections functionality behind a static combo. I don't think every material 
+        needs it, and reflections aren't free. 
+    </p>
+</div>
