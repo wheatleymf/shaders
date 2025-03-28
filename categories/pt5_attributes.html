@@ -7,7 +7,7 @@
     <p>
         <i>
             <b>IN THIS ARTICLE: </b> why do you need RenderAttributes, how can they be accessed and what data we can send over 
-            to your custom shader. Sending data globally and locally for specific GameObjects. 
+            to your custom shader. Constant buffers. Sending data globally and locally for specific GameObjects. 
         </i>
     </p>
     <hr>
@@ -185,5 +185,12 @@ if ( quality == WaterReflectionQuality.Disabled )
 }
     </code></pre>
 
-    <download-file url="/shaders/Pt5_RenderAttributes.shader" title="Download the complete shader:" icon="file_open" /> 
+    <download-file url="/shaders/Pt5_RenderAttributes.shader" title="Download the complete shader:" icon="file_open"></download-file>
+
+    <h3>Constant Buffers</h3>
+    <p>
+        There's another way to pass data into the shader: constant buffers. It allows passing whole structs to your shaders, 
+        which is pretty convenient. Unfortunately I didn't think about it at the time of writing this article, so it's 
+        available as a separate article here: <article-ref link="pt13_cbuffer">Constant Buffers</article-ref>. 
+    </p>
 </div>
