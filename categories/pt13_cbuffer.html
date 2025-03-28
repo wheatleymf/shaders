@@ -1,0 +1,118 @@
+<article-header
+    name="Constant Buffers"
+    icon="stacks"
+    category="shader fundamentals"    
+></article-header>
+<div class="Article">
+    <p>
+        Constant buffers is a nice way to pass whole structs of data into the shader. If you have a big chunk of data that 
+        you don't want to pass as each separate attribute, and/or if you have this data stored as a struct in C#, you can just 
+        pass them once as a constant buffer.
+    </p>
+
+    <h3>Setting in up C#</h3>
+    <p>
+        Constant buffers in HLSL are defined as a <string>cbuffer</string>. In C#, they're assigned to the shader by using 
+        method called <string>SetData</string> in RenderAttributes object. Here's an example where I am passing struct of data 
+        as a constant buffer into scene's global render attributes:
+    </p>
+    <pre><code class="language-csharp">
+// As an example, here's a definition of a simple struct:
+public struct CoolData
+{
+    public Vector3 Position;
+    public float Value;
+
+    // Stupidly primitive constructor 
+    public CoolData( Vector3 position, float value )
+    {
+        Position = position;
+        Value = value;
+    }
+}
+    </code></pre>
+    <pre><code class="language-csharp">
+    // Initialize a new struct object and then pass it as a constant buffer into
+    // the scene render attributes.
+    CoolData data = new( new Vector3( 5 ), 0.5f );
+    Scene.RenderAttributes.SetData( "ConstantBufferName", data );
+    </code></pre>
+    <p>
+        <b>Important!</b> The first argument in <string>SetData</string>, that string name, is what you must also use as a name 
+        for the <string>cbuffer</string> in your shader file. 
+    </p>
+
+    <h3>Setting up in HLSL</h3>
+    <p>
+        And this is how constant buffer is defined in a shader. As I've mentioned, your <string>cbuffer</string> must match the 
+        name that you've set in C#. You don't need to define any additional data other than the constant buffer itself. 
+    </p>
+    <p>
+        Constant buffers can be defined in any shader program block (like <string>PS</string>, or <string>VS</string>, etc...), 
+        or inside of a <string>COMMON</string> block if you'd like to make this data shared between all shader stages. Don't put it 
+        into shader's main function like <string>MainPs</string>, it must be outside of any functions.  
+    </p>
+    <pre><code class="language-hlsl">
+cbuffer ConstantBufferName 
+{
+    float3 Position;
+    float Value;
+};
+    </code></pre>
+
+    <h3>Be Aware: Data Mismatch</h3>
+    <p>
+        Also make sure that all properties in this struct defined in exact same order as in your C# struct. If order is incorrect,
+        or types are mismatching (for example, using <string>float2</string> for <string>Vector3</string>), you may end up 
+        getting incorrect, garbled data.
+    </p>
+    <p>
+        All types have fixed byte size. This is especially important if you'll be making compute shaders with structured buffers. 
+        How does this mismatch happen? Let's say you have a C# struct with a <string>Vector3</string> property, but in a constant
+        buffer you're defining it as a <string>float2</string> instead. Vector3, which is represented as a float3 in shaders, 
+        has a fixed size of <b>12 bytes</b>, while float2 uses <b>8 bytes</b>. 
+    </p>
+    <p>
+        That's 4 bytes of data that gets cut off! And if there's any other variable followed by it, it will try to read first 4 bytes
+        that it isn't supposed to. As a result, you get a steaming pile of data mess. 
+    </p>
+    <p>
+        If you are really curious how data layout works in GPU buffers, here's a nice helper website that can visualize 
+        variables and how they are aligned in structs: <a href="https://maraneshi.github.io/HLSL-ConstantBufferLayoutVisualizer/">[click here]</a>.
+    </p>
+    <p>
+        It's probably worth to tell a bit more details about byte alignment and other rules, but I will likely come back to it 
+        in the compute shader guides. 
+    </p>
+
+    <h3>Usage in Shaders</h3>
+    <p>
+        You can access any data from this constant buffer by directly referencing it's properties. It's very simple: 
+    </p>
+    <pre><code class="language-hlsl">
+{ ... }
+
+cbuffer ConstantBufferName 
+{
+    float3 Position;
+    float Value;
+};
+
+{ ... }
+
+PixelInput MainVs( PixelInput i )
+{
+    // Dead simple: move the world-space vertex, 
+    // then update it's projection-space coordinates.
+    PixelInput o = ProcessVertex( i );
+    o.vPositionWs += Position * Value; 
+    o.vPositionPs = Position3WsToPs( o.vPositionWs );
+
+    return FinalizeVertex( o );
+}
+    </code></pre>
+    <p>
+        As it is implied by the buffer's name, all of this data is constant. You cannot edit these values from HLSL, you can only read them
+        and use in your shader code. You still can update struct's data and push it to the shader from C# anytime. 
+    </p>
+</div>
