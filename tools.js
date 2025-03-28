@@ -445,7 +445,7 @@ async function DisplayCategory( categoryName )
         .then( text => newPage = text);
 
     // Update target area of the main page with downloaded contents
-    let meta = `<div class='meta'>last article update: ${lastModified.toLocaleString()}</div>`;
+    let meta = `<div class='meta'>last website update: ${lastModified.toLocaleString()}</div>`;
     target != undefined ? target.innerHTML = newPage + meta : console.error("Missing target element for new content!");
     
     // Update the title page.. this is a very hacky way because it's basically an afterthought, this should be much better. 
