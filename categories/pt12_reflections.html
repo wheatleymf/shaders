@@ -4,6 +4,10 @@
     category="shader fundamentals"    
 ></article-header>
 <div class="Article">
+    <warning>
+        <b>This article is (temporarily?) delisted.</b> Tracing method has been changed and I currently don't have enough time
+        to properly update this page. Sorry! 
+    </warning>
     <p>
         <i>
             <b>IN THIS ARTICLE: </b> using frame buffers for another purpose - screenspace reflections, using built-in helper
@@ -262,9 +266,13 @@ if ( result.ValidHit )
     </p>
     <img src="/media/pt12_reflections.png">
     <info>
-        Frame buffer does not render objects that have <string>translucent</string> bool enabled in their shader. This means that 
-        any material with transparency will not appear in frame buffers. Things like foliage will not appear in there. If you 
-        know a workaround for this, please let me know. 
+        There are some quirks about the way things are rendered in the reflection. Screenspace tracing class, that we are 
+        using in this article, uses depth buffer to check if it hit anything. It means that if any object on your screen doesn't write 
+        to depth, tracing will ignore it and will be considered as invalid hit. 
+        <br><br>
+        This may be a problem if related shader does not write to depth for any reason, for example: missing <string>Depth()</string> mode,
+        or disabled <string>MainPs</string> during depth prepass. Some shaders with transparency disable depth prepass to save up 
+        some performance, like foliage shader.
     </info>
     <p>
         This is obviously not perfect, and doesn't look so fancy than in some modern games, but this is one of the simplest
