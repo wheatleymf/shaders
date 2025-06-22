@@ -35,19 +35,17 @@
     </p>
     <pre><code class="language-hlsl">
 BoolAttribute(bWantsFBCopyTexture, true);
-BoolAttribute(translucent, true);
     </code></pre>
     <p>
-        <b>bWantsFBCopyTexture</b> will indicate that this shader requires a frame buffer. <b>translucent</b> indicates that this 
-        shader must be transparent: we're not changing actual transparency here, but it will make sure that materials with this
-        shader won't show up on the frame texture, since objects with transparency aren't written to it. We must do it because 
-        otherwise your mesh will render itself in frame buffer, essentially making it appear as a regular opaque surfac, which is useless.
+        <b>bWantsFBCopyTexture</b> will indicate that this shader requires a frame buffer. In older shaders, you may also find
+        another bool attribute, <string>translucent</string>. It indicates that this material is translucent, but today I think 
+        this isn't necessary. 
     </p>
     <p>
         And add the Texture2D for the frame buffer. Make sure to give it an attribute with the name of <b>FrameBufferCopyTexture</b>.
     </p>
     <pre><code class="language-hlsl">
-Texture2D g_tFrameBufferCopyTexture < Attribute("FrameBufferCopyTexture"); SrgbRead( false ); >;
+Texture2D g_tFrameBufferCopyTexture < Attribute( "FrameBufferCopyTexture" ); SrgbRead( false ); >;
     </code></pre>
     <p>
         It can be sampled now. Let's go into the <string>MainPs</string> section now.
@@ -60,10 +58,12 @@ Texture2D g_tFrameBufferCopyTexture < Attribute("FrameBufferCopyTexture"); SrgbR
         the helper function <string>CalculateViewportUv()</string>. 
     </p>
     <pre><code class="language-hlsl">
-float2 ViewportUv = CalculateViewportUv( i.vPositionSs.xy );
+float2 ViewportUv = i.vPositionSs.xy * g_vFrameBufferCopyInvSizeAndUvScale.zw;
     </code></pre>
     <p>
-        Now, using corrected UVs, you can sample the frame buffer:
+        Let me take a moment to explain this giant long variable. This is a global variable that helps you correcting 
+        the screen UV to match current viewport. Some other methods to calculate screen UVs may be incorrect when you have 
+        multiple editor windows open, for example. This method ensures that we will sample frame texture in correct region.  
     </p>
     <pre><code class="language-hlsl">
 float3 frame = g_tFrameBufferCopyTexture.Sample( g_sAniso, ViewportUv ).rgb;
@@ -86,18 +86,6 @@ return float4( frame, 1 );
         important attributes, then you probably just have to restart the editor. 
     </p>
 
-    <h3>Frame Offset Problem</h3>
-    <p>
-        You may ran into a situation where going into play mode from editor may screw up the materials that use frame buffer. 
-        It looks like this: 
-    </p>
-    <img src="/media/pt11_fuckedfb.png">
-    <p>
-        While I'm not entirely sure what's causing this problem, but you may often run into these issues while going between 
-        play/editor modes, and when material editor is open. This may be a problem with the way I'm implementing the frame buffer.
-        But anyway, don't worry about it - this issue doesn't show up in the game itself, and will affect you only in editor. 
-    </p>
-
     <h3>Frame Buffer Downsides</h3>
     <p>
         Using frame buffer has it's own set of limitations, this isn't a "superior" way to handle transparency on objects. 
@@ -106,10 +94,9 @@ return float4( frame, 1 );
         iterate pixels that are rendering behind the translucent surface. 
     </p>
     <p>
-        Trying to render multiple surfaces with frame buffer that overlap with each probably won't work. Other transparent 
-        materials will not render in frame buffer. While opacity has alpha test that allows properly rendering overlapping meshes 
-        (including with backfaces), there's no similar solution for frame buffer. If you need surface transparency for these 
-        purposes, stick with proper opacity instead.
+        If there are multiple transparent surfaces (that copy frame buffer texture) overlapping each other, they may behave incorrectly. 
+        Rendering order will be wrong, or completely incorrect. This is expected for this type of implementation, because frame buffer 
+        isn't meant to replace default transparency. 
     </p>
 
     <h2>Example: Advanced Glass</h2>
