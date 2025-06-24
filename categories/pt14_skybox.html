@@ -1,0 +1,407 @@
+<article-header
+    name="Skybox Shader"
+    icon="landscape_2"
+    category="shader fundamentals"    
+></article-header>
+<div class="Article">
+    <p>
+        <i>
+            <b>IN THIS ARTICLE: </b> making a primitive skybox shader. 
+        </i>
+    </p>
+    <hr>
+
+    <p>
+        Let's make a simple custom skybox shader. Goal for this will be adding very simple sky color, clouds, and bunch of 
+        other little details. 
+    </p>
+
+    <h2>Shader Setup</h2>
+    <p>
+        You can prepare shader structure in the same way as any other shader. Most important part of skybox shaders is to 
+        correctly set up vertices positions so they're aligned to your camera correctly. You can still use PixelInput/VertexInput 
+        structs, although this is optional and you can make your own structs. 
+    </p>
+    <p>
+        <b>How do I use the shader?</b> Make a new material in s&box editor, assign your skybox shader to it. It's okay 
+        if your shader doesn't have any properties exposed for the material editor. After that, you can put this material 
+        into the <b>2D Skybox</b> component. 
+    </p>
+
+    <h2>Vertex Shader</h2>
+    <p>
+        Let's start with setting up the vertex shader. Unlike generic surface shaders, we need to configure vertex position 
+        in a different way. 2D skybox is always rendered behind everything on scene because, well, this is a skybox. 
+        Here's a code snippet: 
+    </p>
+    <pre><code class="language-hlsl">
+PixelInput MainVs( VertexInput i )
+{
+    PixelInput o;
+
+    o.vPositionWs = i.vPositionOs;
+    o.vPositionWs = g_vCameraPositionWs.xyz + i.vPositionOs * 100;
+    o.vPositionPs = Position3WsToPs( vPositionWs. );
+            
+    return o;
+}
+    </code></pre>
+    <p>
+        First, we don't do <string>ProcessVertex()</string> or <string>FinalizeVertex()</string>, we don't need any of this 
+        and we're going to return the vertex as is. Instead of ProcessVertex, we're creating a new PixelInput directly. 
+    </p>
+    <p>
+        Then, we copy object-space vertex position (<string>vPositionOs</string>) into world-space position slot
+        (<string>vPositionWs</string>). Object-space position coordinates are relative to the base mesh itself, this is how 
+        vertices are aligned in every mesh. In our case, this is what we need for the skybox. 
+    </p>
+    <p>
+        Second part is updating <string>vPositionWs</string> again, but this time we're adding current camera position to 
+        object-space coordinates, which makes vertices to stay fixed near our camera. Current position wouldn't be enough 
+        to render correctly though.
+    </p>
+    <p>
+        To fix that, "increase" the size of a skybox by 100. (<string>i.vPositionOs * 100</string>) This will avoid any 
+        potential glitches, like skybox "bleeding" with high FOV camera, or rendering incorrectly in your env probes. 
+    </p>
+    <p>
+        At last, don't forget to update <string>vPositionPs</string> by converting world-space vertex position to 
+        projection space, which will make them aligned on your screen correctly. Without this step, any changes to vertices 
+        in <string>vPositionWs</string> won't have any effect. 
+    </p>
+
+    <h2>Pixel Shader</h2>
+    <p>
+        You can now move onto the main part, the pixel shader. As I said, I won't get too deep into details and provide a nice
+        skybox example. s&box has a built-in shader called <string>atmospheric_sky.fxc</string> that comes with a complex, 
+        and very nice looking procedural sky that supports both day & night lighting. 
+    </p>
+    <p>
+        Right before <b>MainPs</b> section, disable backface culling using this render state:
+    </p>
+    <pre><code class="language-hlsl">
+RenderState( CullMode, NONE );
+    </code></pre>
+    <p>
+        This will force the shader to never cull backfaces. If this render state is enabled, skybox shader won't render 
+        at all.
+    </p>
+
+    <h3>Coordinates</h3>
+    <p>
+        First, we need to get the correct coordinates that we'll be using for sampling everything. 
+        We won't be using traditional UV vector, instead you will use view ray vector:
+    </p>
+    <pre><code class="language-hlsl">
+float3 vPositionWs = i.vPositionWithOffsetWs + g_vCameraPositionWs;
+float3 vRay = normalize( vPositionWs - g_vCameraPositionWs );
+    </code></pre>
+    <p>
+        I don't know if you really need this, but there's also a built-in Valve function called 
+        <string>CalculateCameraToPositionDirWs( vPositionWs )</string>, which will return you an identical view ray vector. 
+    </p>
+
+    <h3>Basic Sky Color</h3>
+    <p>
+        Create two color inputs for the material editor. One will represent upper part of the sky, and other will be sky horizon.
+        They must be a <string>float3</string> vector:
+    </p>
+    <pre><code class="language-hlsl">
+// Material properties
+float3 SkyColor < UiType( Color ); Default3( 1, 1, 1 ); UiGroup( "Sky, 10/10" ); >;
+float3 SkyHorizon < UiType( Color ); Default3( 1, 0, 1 ); UiGroup( "Sky, 10/20" ); >;
+    </code></pre>
+    <p>
+        And now just lerp between these two colors, then return it:
+    </p>
+    <pre><code class="language-hlsl">
+float3 sky = lerp( SkyHorizon, SkyColor, saturate( vRay.z * 2 ) );
+return float4( sky, 1 );
+    </code></pre>
+
+    <img src="/media/pt14_gradient.png">
+
+    <p>
+        Don't forget that view ray vector is normalized, meaning that it's in <string>-1 to 1</string> range.
+        Without saturating this value, (clamping it to <string>0 to 1</string>) it will result in glitchy lerp.  
+        I am multiplying <string>vRay.z</string> by 2 to make the transition between two colors sharper. You can get 
+        rid of this part, or change the value, and see how this affects the gradient. 
+    </p>
+    <p>
+        Why Z component? Because this is what represents the Z axis of the skybox, obviously. It starts at 1, which is top part 
+        of the skybox, and -1 is the bottom. 
+    </p>
+
+    <h3>Sun</h3>
+    <p>
+        Let's draw sun on the sky! For that, we are going to use great light API which allow us to easily loop through 
+        lights available on screen. This means that you don't need to bother about copying any data from CPU to your shader 
+        using render attributes. Everything you do will be done inside this shader, no extra setup. 
+    </p>
+    <p>
+        Right after creating your sky color variable and lerping two colors, create a new loop. We will loop through each 
+        available light source, and <string>Light::Count( i.vPositionSs.xy )</string> will tell you how many of them 
+        is available on screen. Use this value as a condition for loop break. 
+    </p>
+    <pre><code class="language-hlsl">
+// Light::Count will tell you how many lights is available 
+for ( int j = 0; j < Light::Count( i.vPositionSs.xy ); j++ )
+{
+    ...
+}
+    </code></pre>
+    <p>
+        Inside the loop, create a new <string>Light</string> object, this is where you will copy light data for current loop 
+        iteration. This is done using <string>Light::From( vPositionSs, vPositionWs, id )</string>. <b>vPositionWs</b> is 
+        world-space pixel position, <b>vPositionSs</b> is screen position, and <b>id</b> is your current loop iteration,
+        in this case it's <string>j</string>.
+    </p>
+    <p>
+    <pre><code class="language-hlsl">
+for ( int j = 0; j < Light::Count( i.vPositionSs.xy ); j++ )
+{
+    // Copy the light object 
+    Light light = Light::From( i.vPositionSs.xy, vPositionWs, j ); 
+} 
+    </code></pre>    
+    </p>
+    <p>
+        Next step will be checking if current light is <b>directional</b>, aka sun. We don't want to draw irrelevant light sources obviously, 
+        like every point/spot light. But how do you do that? According to <a href="https://docs.facepunch.com/s/sbox-dev/doc/light-2kZG4rs3k1">Light API docs</a>,
+        position value for directional lights is identical to <b>Direction</b>. Let's use this knowledge to quit loop early if light object 
+        doesn't match this condition. 
+    </p>
+    <pre><code class="language-hlsl">
+for ( int j = 0; j < Light::Count( i.vPositionSs.xy ); j++ )
+{
+    // Copy the light object 
+    Light light = Light::From( i.vPositionSs.xy, vPositionWs, j ); 
+
+    // Quit early if light position isn't equal to direction 
+    if ( distance( light.Position, light.Direction ) <= 1 ) 
+        continue;
+} 
+    </code></pre>
+    <p>
+        At last, let's draw the sun. For this bit, I'm taking the code from <string>atmospheric_sky</string> shader. 
+        Get a dot product between view ray direction, and sun's direction. Use <string>pow</string> to make the sun radius 
+        much smaller. Multiply it by <b>10</b> to slightly increase the radius and make the borders a little sharper.
+    </p>
+    <pre><code class="language-hlsl">
+float fSun = pow( saturate( dot( vRay, light.Direction ) ), 10000 ) * 10;
+sky += light.Color * fSun * 5;
+    </code></pre>
+    <p>
+        You can edit these values as you wish to adjust sun radius, border sharpness, and any other properties, these aren't 
+        magic values and you can do whatever you want.
+    </p>
+    <p>
+        Last bit is adding light's color to sky. <string>fSun</string> is used as a mask here. It is multiplied by <b>5</b>
+        to increase the color intensity, sun is very bright after all. 
+    </p>
+
+    <img src="/media/pt14_sun.png" >
+
+    <p>
+        Now it's done! Sun now shows up in the sky. If you'd like to go even further, you can make sun fade as it reaches the horizon.
+        For that, multiply the <string>fSun</string> mask by view ray's Z component, and don't forget to saturate it beforehand. 
+    </p>
+    <pre><code class="language-hlsl">
+fSun *= saturate( vRay.z );
+    </code></pre>
+
+    <img src="/media/pt14_sunhorizon.png" >
+
+    <p>
+        Now, sun will fade after reaching the horizon line. Very nice! Since now you can access sun's direction, you can write 
+        your own sky atmosphere code and do anything. Sun direction vector is all what you need to determine if it's morning, day, evening, or night.
+        I won't be doing this for this article, but feel free to check out 
+        <string>atmosphere_sky</string> code. This is how code looks so far:
+    </p>
+    <pre><code class="language-hlsl">
+float4 MainPs( PixelInput i ) : SV_Target0
+{
+    float3 vPositionWs = i.vPositionWithOffsetWs + g_vCameraPositionWs;
+    float3 vRay = normalize( vPositionWs - g_vCameraPositionWs );
+    float3 vCamDir = g_vCameraDirWs;
+		
+    // Draw basic sky + horizon colors using the Z component of view ray vector
+    float3 sky = lerp( SkyHorizon, SkyColor, saturate( vRay.z * 2 ) );
+
+    // Loop through all available light sources using light API, skip all lights
+    // that aren't directional. 
+    for ( int j = 0; j < Light::Count( i.vPositionSs.xy ); j++ )
+    {
+        Light light = Light::From( i.vPositionSs.xy, vPositionWs, j ); 
+        
+        // Early exit if current light isn't directional
+        // Directional lights have identical position & direction. 
+        if ( distance( light.Position, light.Direction ) <= 1 ) 
+            continue;
+
+        // Create a sun mask 
+        float fSun = pow( saturate( dot( vRay, light.Direction ) ), 10000 ) * 20;
+        
+        // Clip sun mask entirely if it reaches the horizon level
+        fSun *= saturate( vRay.z * 100 );
+        sky += light.Color * fSun * 5; // multiply by 5 for stronger light intensity
+    }
+
+    return float4( sky, 1 );
+}
+    </code></pre>
+
+    <h3>Texture Cubes (extra)</h3>
+    <p>
+        This is an optional step, but if you want to render images on skybox, this is possible, too. For that, you will need 
+        a <b>TextureCube</b> texture. Unlike Texture2D, this one has a different sampling method, and it exists for things 
+        like cubemap reflections, skybox UVs, and other things too!
+    </p>
+    <p>
+        Add an input slot for material editor. This will look a bit different than usual:
+    </p>
+    <pre><code class="language-hlsl">
+CreateInputTextureCube( SkyTexture, Srgb, 8, "", "_color", "Sky, 20/30", Default3( 1, 1, 1 ) );
+TextureCube g_tSkyTexture < Channel( RGB, Box( SkyTexture ), Srgb ); OutputFormat( BC7 ); SrgbRead( true ); >;
+    </code></pre>
+    <p>
+        Instead of <string>Texture2D</string>, it's TextureCube. Syntax inside this macro is still the same. Instead of creating 
+        a new Texture2D, you'll be creating a <string>TextureCube</string>, where attribute syntax is also identical. 
+    </p>
+    <p>
+        <string>TextureCube</string> requires a <string>float3</string> UV for sampling. In this case, <b>view ray</b> vector 
+        is exactly what you need. 
+    </p>
+    <pre><code class="language-hlsl">
+float3 CubeSky = g_tSkyTexture.Sample( g_sAniso, vRay );
+// Add, multiply or do whatever you want with the texture 
+    </code></pre>
+    <info>
+        For skybox textures, it's recommended to use resolutions in 2K-4k range. Lower size textures will look worse. 
+    </info>
+
+    <img src="/media/pt14_texturecube.png" >
+
+    <p>
+        If you want to add more little detail to cube textures, you can <b>rotate</b> this view ray vector. For this, I am going 
+        to use <string>AngleAxis3x3</string> function by <b>keijiro</b>, you can find <a href="https://gist.github.com/keijiro/ee439d5e7388f3aafc5296005c8c3f33">the gist here</a>.
+    </p>
+    <p>
+        Add this function somewhere before <string>MainPs</string>:
+    </p>
+    <pre><code class="language-hlsl">
+float3x3 AngleAxis3x3( float angle, float3 axis )
+{
+    float c, s;
+    sincos( angle, s, c );
+
+    float t = 1 - c;
+    float x = axis.x;
+    float y = axis.y;
+    float z = axis.z;
+
+    return float3x3(
+        t * x * x + c,      t * x * y - s * z,  t * x * z + s * y,
+        t * x * y + s * z,  t * y * y + c,      t * y * z - s * x,
+        t * x * z - s * y,  t * y * z + s * x,  t * z * z + c
+    );
+}
+    </code></pre>
+    <p>
+        <string>angle</string> is the angle of rotation in radians, and <string>axis</string> is a vector that indicates
+        which axis you want to rotate. As a result, it returns a rotation matrix.  
+    </p>
+    <p>
+        Before sampling the texture, do this: 
+    </p>
+    <pre><code class="language-hlsl">
+float3x3 mAxisRotation = AngleAxis3x3( g_flTime * 0.05, float3( 0, 0, 1 ) ); 
+float3 vRayRotation = mul( vRay, mAxisRotation );
+    </code></pre>
+    <p>
+        We're going to use time variable (extremely slowed down) as a rotation angle value, so it stays animated, 
+        and for the axis I'm creating a new float3 vector, where Z component is the only non-zero value, so it means that 
+        vector rotation will be performed only on Z-axis. 
+    </p>
+    <p>
+        After new matrix is created, multiply your original view ray vector and matrix using HLSL function called 
+        <string>mul()</string>. Once this is done, sample your cube texture using <string>vRayRotation</string>.
+    </p>
+    <pre><code class="language-hlsl">
+float3 CubeSky = g_tSkyTexture.Sample( g_sAniso, vRayRotation );
+    </code></pre>
+
+    <h3>Clouds</h3>
+    <p>
+        This is going to look ugly as hell, but I just want to show you an example how can it be done. For this example, 
+        I'm going to use a built-in noise function, but you can also draw by sampling a texture, too. Don't forget to add 
+        <string>#include "procedural.hlsl"</string> in your PS section if you're going to follow this section. 
+    </p>
+    <p>
+        Coordinates for noise/texture sampling is this:
+    </p>
+    <pre><code class="language-hlsl">
+float2 vCloudUv = vRay.xy / abs( vRay.z );
+    </code></pre>
+    <p>
+        Now let's sample Simplex2D noise using these coordinates. As I said, these UVs will also work for texture sampling.
+        I really, really recommend using textures for clouds, since noises (especially in multiple passes) aren't ideal for performance. 
+    </p>
+    <pre><code class="language-hlsl">
+// Simplex2D is in [-1 to 1] range, so we need to remap it to avoid glitchy visuals. 
+float2 vCloudUv = vRay.xy / abs( vRay.z );
+float cloud = Simplex2D( vCloudUv - g_flTime * 0.1 ) * 0.5 + 0.5;
+    </code></pre>
+
+    <img src="/media/pt14_clouds_shit.png" >
+
+    <p>
+        You can directly add it to sky color and see the result. Wow, it is rendering twice, even below the horizon! This isn't 
+        what we want, but luckily there's an easy solution: 
+    </p>
+    <pre><code class="language-hlsl">
+cloud *= saturate( vRay.z * 0.5 ); 
+    </code></pre>
+    <p>
+        Multiplying cloud by view ray's Z component will completely remove clouds from appearing under the horizon.
+        View ray is multiplied by 0.5 just to make clouds appear slightly darker, otherwise they'll glow like crazy. 
+    </p>
+    <p>
+        Just like with any other UVs, you can manipulate it to adjust scaling, movement animations, and distortions. I'll leave 
+        this up to you. 
+    </p>
+
+    <img src="/media/pt14_clouds.png" >
+
+    <h3>Fog</h3>
+    <p>
+        Don't forget to add support for fog! Usually it's done as a part of the shading model, but since we return the skybox 
+        color directly, you need to add fog yourself. Don't worry, it's done with the <string>Fog</string> class.
+        Just add this at the bottom of your code:
+    </p>
+    <pre><code class="language-hlsl">
+// Function implementation: 
+// Fog::Apply( float3 vPositionWs, float2 vPositionSs, float3 color )
+sky = Fog::Apply( Depth::GetWorldPosition( i.vPositionSs.xy ), i.vPositionSs.xy, sky );
+    </code></pre>
+    <p>
+        <string>Fog::Apply()</string> will apply the entire stack of atmospherics supported by s&box, which is gradient fog, 
+        cubemap fog, and volumetric fog. The only problem here is cubemap fog, which doesn't work with custom skybox shaders 
+        unfortunately. 
+    </p>
+    <p>
+        <b>Why am I using depth here?</b> Usually Fog class takes world-space pixel position, and we do have <string>vPositionWs</string>
+        here, but it is not going to be correct in this situation, because it holds object-space vertex coordinates, adjusted
+        by camera position. <b>Depth::GetWorldPosition</b> fills the gap, and returns exact coordinates. This is an unique case,
+        and in regular surface shaders you should keep using <b>vPositionWs</b> for fog class. 
+    </p>
+
+    <img src="/media/pt14_fog.png" >
+
+    <p>
+        That's all for now! As I said, this looks like shit, but I just wanted to show you the base idea how to set up 
+        the shader, draw things, and apply s&box atmospherics. 
+    </p>
+
+    <download-file url="/shaders/Pt14_SkyboxShader.shader" title="Download the complete shader:" icon="file_open"></download-file>
+</div>
