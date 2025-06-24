@@ -1,0 +1,560 @@
+<article-header
+    name="Common Functions"
+    icon="function"
+    category="references"    
+></article-header>
+<div class="Article">
+    <p>
+        s&box comes with a bunch of built-in functions that are not native to HLSL, but used in nearly all shaders. 
+        Most of them are helper functions made by Valve for their shaders, and remained unchanged since then. 
+        Some of them are pretty self-explanatory, but I'll leave a reference page for them for very curious people.
+        This list is probably incomplete. 
+    </p>
+    <p>
+        A huge portion of these functions use the Valve naming convention. If you're not familiar with things like 
+        <b>Ws</b>, <b>Ts</b> etc, check out an article <article-ref link="namings">Naming Conventions</article-ref> which
+        explains most common things in the function/variable names.
+    </p>
+    <hr>
+
+    <h2>Normal functions</h2>
+    <p>
+        Bunch of helper functions to manipulate float3 vectors, usually used for adjusting normals. 
+    </p>
+
+    <h3>TransformNormal</h3>
+    <p>
+        Converts tangent-space normals to world-space. This function is widely used in shaders to convert tangent-space 
+        normal textures to world-space, which is necessary for correct shading.
+    </p>
+    <p>
+        This function inside is a little different compared to <b>Vec3TsToWsNormalized</b>. Both U and V tangents are normalized, 
+        and Y axis on tangent-space normals are inverted. After that, function uses <b>Vec3TsToWsNormalized</b> and returns the final vector.
+    </p>
+    <pre><code class="language-hlsl">
+float3 TransformNormal( float3 vNormalTs, float3 vGeometricNormalWs, float3 vTangentUWs, float3 vTangentVWs )
+    </code></pre>
+    <ul>
+        <li><b>vNormalTs</b> tangent-space normals</li>
+        <li><b>vGeometricNormalWs</b> world-space geometric normals</li>
+        <li><b>vTangentUWs</b> world-space tangent U</li>
+        <li><b>vTangentVWs</b> world-space tangnet V</li>
+    </ul>
+
+    <h3>NormalWorldToTangent</h3>
+    <p>
+        Converts world-space normals to tangent space. From what I am seeing, there's no difference to it, except that this function 
+        will return blank normal if you don't have <string>ENABLE_NORMAL_MAPS</string> defined in your shader. I have no idea if 
+        this define was ever used in modern s&box shaders.
+    </p>
+    <pre><code class="language-hlsl">
+float3 NormalWorldToTangent( float3 vNormalWs, float3 vGeometricNormalWs, float3 vTangentUWs, float3 vTangentVWs )
+    </code></pre>
+
+    <info>
+        These functions below are used by <b>TransformNormal</b> and <b>NormalWorldToTangent</b>. You probably don't need to 
+        use them directly, but I'll leave them documented here anyway.
+    </info>
+
+    <h3>Vec3WsToTs</h3>
+    <p>Converts normal vector from world-space to tangent-space. Returns a tangent-space vector.</p>
+    <pre><code class="language-hlsl">
+float3 Vec3WsToTs( float3 vVectorWs, float3 vNormalWs, float3 vTangentUWs, float3 vTangentVWs )
+    </code></pre>
+    <ul>
+        <li><b>vVectorWs</b> world-space normals</li>
+        <li><b>vNormalWs</b> world-space geometric normals</li>
+        <li><b>vTangentUWs</b> world-space tangent U</li>
+        <li><b>vTangentVWs</b> world-space tangent V</li>
+    </ul>
+    <info>
+        <b>vTangentUWs</b> and <b>vTangentVWs</b> are usually available from PixelInput struct. Geometric normals usually 
+        mean normals from the mesh itself, which can be accessed as <b>vNormalWs</b> in PixelStruct, too.
+    </info>
+    
+    <h3>Vec3WsToTsNormalized</h3>
+    <p>Has the same functionality as <b>Vec3WsToTs</b>, except returned tangent-space normal vector is normalized.
+    All arguments are identical to the main function.</p>
+    <pre><code class="language-hlsl">
+float3 Vec3WsToTsNormalized( float3 vVectorWs, float3 vNormalWs, float3 vTangentUWs, float3 vTangentVWs )
+    </code></pre>
+
+    <h3>Vec3TsToWs</h3>
+    <p>
+        Converts tangent-space normals to world-space.
+    </p>
+    <pre><code class="language-hlsl">
+float3 Vec3TsToWs( float3 vVectorTs, float3 vNormalWs, float3 vTangentUWs, float3 vTangentVWs )
+    </code></pre>
+    <ul>
+        <li><b>vVectorTs</b> tangent-space normals</li>
+        <li><b>vNormalWs</b> world-space geometric normals</li>
+        <li><b>vTangentUWs</b> world-space tangent U</li>
+        <li><b>vTangentVWs</b> world-space tangnet V</li>
+    </ul>
+
+    <h3>Vec3TsToWsNormalized</h3>
+    <p>
+        Does the same thing as <b>Vec3TsToWs</b>, except returned world-space normals are normalized. 
+    </p>
+    <pre><code class="language-hlsl">
+float3 Vec3TsToWsNormalized( float3 vVectorTs, float3 vNormalWs, float3 vTangentUWs, float3 vTangentVWs )
+    </code></pre>
+    
+    <hr>
+
+    <h2>Normal Decoding</h2>
+    <p>
+        These functions are utilized for decoding normal map textures into proper vectors. 
+    </p>
+
+    <h3>DecodeNormal</h3>
+    <p>
+        Decodes normal map texture. By default, normal map texture is stored as a regular image in <string>0 to 1</string>
+        image. Decoding allows converting this texture into a proper normal vector in <string>-1 to 1</string> range. 
+    </p>
+    <pre><code class="language-hlsl">
+float3 DecodeNormal( float3 vNormal )
+    </code></pre>    
+
+    <h3>DecodeHemiOctahedronNormal</h3>
+    <p>
+        This is an alternative to <string>DecodeNormal</string> for normal map textures that are using custom hemioctahedron 
+        encoding. This encoding stores normal maps only in red and green channels, leaving blue channel for roughness. 
+        It requires packing normal map in your shader with special <string>HemiOctIsoRoughness_RG_B</string> filtering. 
+        You probably don't need to use this, unless you really know what are you doing. 
+    </p>
+    <pre><code class="language-hlsl">
+float3 DecodeHemiOctahedronNormal( float2 vHemiOct )
+    </code></pre>
+
+    <hr>
+
+    <h2>Visuals</h2>
+    <p>
+        Some rendering classes used for shading model. If you're using your shader with standard shading model, you 
+        won't need to use these classes, since they're used in it already. 
+    </p>
+    <info>
+        Most of these classes are documented on <a href="https://docs.facepunch.com/s/sbox-dev/doc/classes-FCwQQ1uwqL">Facepunch website</a>
+        already, I'm only documenting those classes that haven't been included there yet.
+    </info>
+
+    <h3>Decals</h3>
+    <p>
+        <b>Included with</b> <string>#include "common/shared.hlsl"</string>
+    </p>
+    <p>
+        Draws decals on the material. Decals are added to scene using <b>Decal</b> component, and read from shaders using 
+        it's structured buffer. It takes your material object and then returns it after applying all decals visible 
+        on screen. 
+    </p>
+    <pre><code class="language-hlsl">
+Material Decals::Apply( float3 worldPos, float2 screenPos, in out Material material )
+    </code></pre>
+    <ul>
+        <li>
+            <b>worldPos</b> world-space pixel position
+        </li>
+        <li>
+            <b>screenPos</b> pixel screen-space position (<string>vPositionSs</string>)
+        </li>
+        <li>
+            <b>material</b> your material object.
+        </li>
+    </ul>
+
+    <h3>Fog</h3>
+    <p>
+        <b>Included with</b> <string>#include "common/shared.hlsl"</string>
+    </p>
+    <p>
+        Renders all three types of fog: <b>gradient</b>, <b>cubemap</b> and <b>volumetric</b> fogs. 
+        In shading model, this is the last operation before returning the shaded pixel. 
+    </p>
+    <pre><code class="language-hlsl">
+float3 Fog::Apply( float3 worldPos, float2 screenPos, float3 color )        
+    </code></pre>
+    <ul>
+        <li>
+            <b>worldPos</b> world-space pixel position
+        </li>
+        <li>
+            <b>screenPos</b> pixel screen-space position (<string>vPositionSs</string>)
+        </li>
+        <li>
+            <b>color</b> color that will be returned with fog drawn on top of it 
+        </li>
+    </ul>
+
+    <h3>Normals</h3>
+    <p>
+        <b>Included with</b> <string>#include "common/shared.hlsl"</string>
+    </p>
+    <p>
+        Dedicated class to fetch normals. If g-buffer is available, it will sample normal from this buffer at given pixel 
+        and then return it. If g-buffer isn't available, it will sample normal from depth buffer. Depth buffer contains 
+        only the geometry, so it won't be able to retrieve detail from material's normal map. 
+    </p>
+    <pre><code class="language-hlsl">
+float3 Normals::Sample( int2 screenPos, uint msaaSampleIndex = 0 )
+    </code></pre>
+    <ul>
+        <li>
+            <b>screenPos</b> screen-space pixel position, as <b>uint</b>
+        </li>
+        <li>
+            <b>msaaSampleIndex</b>, optional, set to <b>0</b> by default. You probably don't need to touch this argument. 
+        </li>
+    </ul>
+
+    <h3>Roughness</h3>
+    <p>
+        <b>Included with</b> <string>#include "common/shared.hlsl"</string>
+    </p>
+    <p>
+        Dedicated class to fetch roughness. You can fetch roughness only if g-buffer is available. Otherwise it will return 
+        zero.
+    </p>
+    <pre><code class="language-hlsl">
+float Roughness::Sample( int2 screenPos, uint msaaSampleIndex = 0 )
+    </code></pre>
+    <ul>
+        <li>
+            <b>screenPos</b> screen-space pixel position, as <b>uint</b>
+        </li>
+        <li>
+            <b>msaaSampleIndex</b>, optional, set to <b>0</b> by default. You probably don't need to touch this argument. 
+        </li>
+    </ul>
+
+    <hr>
+
+    <h2>DepthNormals (G-Buffer)</h3>
+    <p>
+        This is used in shading model as one of the last operations before returning the finalized pixel. This is intended to 
+        return some of the material data (<b>normals</b> in <string>RGB</string> components, and <b>roughness</b> in <string>A</string>).
+        You probably don't need to ever use this, unless you're writing your own shading model.
+    </p>
+
+    <h3>Output</h3>
+    <p>
+        Output the contents of material (normal and roughness) to g-buffer. Normal will be remapped to <string>0-1</string> range. 
+        If <string>S_ALPHA_TEST</string> is enabled, g-buffer will write <b>transparency</b> into <string>A</string> instead of 
+        roughness. 
+    </p>
+    <pre><code class="language-hlsl">
+float4 DepthNormals::Output( float3 normal, float roughness = 1.0f, float opacity = 1.0f )
+    </code></pre>
+
+    <h3>WantsDepthNormals</h3>
+    <p>
+        Returns either <b>true</b> or <b>false</b>. If <string>S_MODE_DEPTH</string> is defined and currently set to 1,
+        this function will return <b>true</b>. Otherwise, it'll be false. You can use this to wrap <string>::Output</string> 
+        so it doesn't try outputting to g-buffer when it's not possible. 
+    </p>
+    <pre><code class="language-hlsl">
+bool DepthNormals::WantsDepthNormals()
+    </code></pre>
+
+    <hr>
+
+    <h2>BRDF</h2>
+    <info>
+        I don't know what's the fate of these functions. This might be reworked into a proper class sometime in the future, 
+        I don't really know. Sorry for lack of better description for these functions, I'm leaving them here just for the convenience.
+    </info>
+    <p>
+        This is a collection of various BRDF functions, used by s&box standard shading model to calculate realistic, physically-based 
+        shading on materials. 
+    </p>
+    <p>
+        A BRDF is a function that defines how light is reflected at an opaque surface. It is used in rendering to simulate the way light interacts with surfaces,
+        taking into account the angle of incidence and the angle of reflection. The BRDF is essential for achieving realistic lighting in computer graphics.
+        It describes the relationship between the incoming light direction, the outgoing light direction, and the surface normal, providing a way to calculate
+        the amount of light reflected in a given direction.
+    </p>
+
+    <h3>SampleBRDF</h3>
+    <p>
+        Samples BRDF lookup texture. Returns a <string>float4</string> texture. 
+    </p>
+    <pre><code class="language-hlsl">
+float4 SampleBRDF( float2 vBRDFLookup )
+    </code></pre>
+    <ul>
+        <li>
+            <b>vBRDFLookup</b> is a float2 vector where (usually) first component is a <b>dot product between surface normal and 
+            normalized view vector</b> (NdotV), and second component is <b>surface roughness</b>.
+        </li>
+    </ul>
+
+    <h3>ComputeGGXBRDF</h3>
+    <p>
+        Computes the GGX BRDF term.
+    </p>
+    <pre><code class="language-hlsl">
+float2 ComputeGGXBRDF( float2 vRoughness, float flNdotL, float flNdotV, float flNdotH, float2 vPositionSs )
+    </code></pre>
+    <ul>
+        <li>
+            <b>vRoughness</b> is a float2 vector with surface roughness value. Standard shading model contains roughness 
+            as a two-component vector. 
+        </li>
+        <li>
+            <b>flNdotL</b> dot product between <b>surface normal</b> and light direction.
+        </li>
+        <li>
+            <b>flNdotV</b> dot product between <b>surface normal</b> and view vector. 
+        </li>
+        <li>
+            <b>flNdotH</b> dot product between <b>surface normal</b> and <b>half-way vector</b> (magnitude between view and light vectors) 
+        </li>
+        <li>
+            <b>vPositionSs</b> screen-space pixel position (<string>i.vPositionSs</string>)
+        </li>
+    </ul>
+
+    <h3>ComputeCharlieSheenBRDF</h3>
+    <p>
+        Computes charlie sheen BRDF term.
+    </p>
+    <pre><code class="language-hlsl">
+float ComputeCharlieSheenBRDF( float flRoughness, float flNdotL, float flNdotV, float flNdotH )
+    </code></pre>
+    <ul>
+        <li>
+            <b>vRoughness</b> is a float2 vector with surface roughness value. Standard shading model contains roughness 
+            as a two-component vector. 
+        </li>
+        <li>
+            <b>flNdotL</b> dot product between <b>surface normal</b> and light direction.
+        </li>
+        <li>
+            <b>flNdotV</b> dot product between <b>surface normal</b> and view vector. 
+        </li>
+        <li>
+            <b>flNdotH</b> dot product between <b>surface normal</b> and <b>half-way vector</b> (magnitude between view and light vectors) 
+        </li>        
+    </ul>
+    
+    <h3>CalcBRDFReflectionFactor</h3>
+    <p>
+        Calculates BRDF reflection factor for the specular color. 
+    </p>
+    <pre><code class="language-hlsl">
+float3 CalcBRDFReflectionFactor( float flNDotV, float flRoughness, float3 vSpecularColor )
+    </code></pre>
+    <ul>
+        <li>
+            <b>flNdotV</b> dot product between <b>surface normal</b> and view vector. 
+        </li>
+        <li>
+            <b>flRoughness</b> surface roughness 
+        </li>
+        <li>
+            <b>vSpecularColor</b> specular color (used for diffuse+specular composite in many PBR shading models)
+        </li>
+    </ul>
+    
+    <h3>IsotropicRoughnessFromAnisotropicRoughness</h3>
+    <p>
+        Converts anisotropic (<string>float2</string>) surface roughness to isotropic. 
+    </p>
+    <pre><code class="language-hlsl">
+float IsotropicRoughnessFromAnisotropicRoughness( float2 vRoughness )
+    </code></pre>
+
+    <h3>CalculateGeometricRoughnessFactor</h3>
+    <p>
+        Calculates geometric roughness factor using model's geometric normals. In PixelInput struct, they can be accessed 
+        from <string>i.vNormalWs</string>. 
+    </p>
+    <pre><code class="language-hlsl">
+float CalculateGeometricRoughnessFactor( float3 vGeometricNormalWs )
+    </code></pre>
+
+    <h3>AdjustRoughnessByGeometricNormal</h3>
+    <p>
+        Adjusts roughness value by geometric normals (same type of normals as above)
+    </p>
+    <pre><code class="language-hlsl">
+float2 AdjustRoughnessByGeometricNormal( float2 vRoughness, float3 vGeometricNormalWs )
+    </code></pre>
+
+    <hr>
+
+    <h2>Vertex Stuff</h2>
+    <p>
+        I can't think of a better name for this category yet. Functions that are usually used only in vertex shaders.
+    </p>
+
+    <h3>Position3WsToPs</h3>
+    <p>
+        Converts world-space vertex position to projection space. If you're editing vertices in <string>vPositionWs</string>, 
+        it is necessary to use this function to convert them to projection space for <string>vPositionPs</string>. 
+    </p>
+    <pre><code class="language-hlsl">
+float4 Position3WsToPs( float3 vPositionWs )
+    </code></pre>
+    <ul>
+        <li><b>vPositionWs</b> world-space vertex position</li>
+    </ul>
+
+    <hr>
+
+    <h2>Value Remapping</h2>
+    <p>
+        Two functions that allow remapping values from one range to another. 
+    </p>
+
+    <h3>RemapVal</h3>
+    <p>
+        Remap a value in the range <string>A, B</string> to <string>C, D</string>.
+    </p>
+    <pre><code class="language-hlsl">
+float RemapVal( float flOldVal, float flOldMin, float flOldMax, float flNewMin, float flNewMax )
+    </code></pre>
+    <ul>
+        <li><b>flOldVal</b> - value that needs to be remapped</li>
+        <li><b>flOldMin</b> and <b>flOldMax</b> - current value's min/max range that needs to be remapped</li>
+        <li><b>flNewMin</b> and <b>flNewMax</b> - Given value will be remapped to this range min/max.</li>
+    </ul>
+
+    <h3>RemapValClamped</h3>
+    <p>
+        Remap a value in the range <string>A, B</string> to <string>C, D</string>.
+        Values smaller than <b>A</b> are mapped to <b>C</b>, and values greater than <b>B</b> are mapped to <b>D</b>.
+    </p>
+    <pre><code class="language-hlsl">
+float RemapValClamped( float flOldVal, float flOldMin, float flOldMax, float flNewMin, float flNewMax )
+    </code></pre>
+    <info>
+        This function shares the same set of arguments as <b>RemapVal</b>.
+    </info>
+
+    <h2>Camera to Position</h2>
+    <p>
+        Bunch of functions to get ray/direction from camera to given world-space pixel position.
+    </p>
+
+    <h3>CalculateCameraToPositionRayWs</h3>
+    <p>
+        Returns a ray from camera to pixel's position, in world-space coordinates. Internally, this performs 
+        <b>vPositionWs - g_vCameraPositionWs</b>.
+    </p>
+    <pre><code class="language-hlsl">
+float3 CalculateCameraToPositionRayWs( float3 vPositionWs )
+    </code></pre>
+    <ul>
+        <li><b>vPositionWs</b> world-space pixel position</li>
+    </ul>
+
+    <h3>CalculateCameraToPositionDirWs</h3>
+    <p>
+        Returns a <i>normalized direction vector</i> from camera to pixel's position, in world-space coordinates.
+    </p>
+    <pre><code class="language-hlsl">
+float3 CalculateCameraToPositionDirWs( float3 vPositionWs )
+    </code></pre>
+
+    <h3>CalculateCameraToPositionRayTs</h3>
+    <p>
+        Calculates tangent-space ray from camera to pixel's position. This value is not normalized. Internally, this wraps
+        <b>CalculateCameraToPositionRayWs</b> into <b>Vec3WsToTs</b>.
+    </p>
+    <pre><code class="language-hlsl">
+float3 CalculateCameraToPositionRayTs( float3 vPositionWs, float3 vTangentUWs, float3 vTangentVWs, float3 vNormalWs )
+    </code></pre>
+    <ul>
+        <li><b>vPositionWs</b> world-space pixel position</li>
+        <li><b>vTangentUWs</b> world-space tangent U</li>
+        <li><b>vTangentVWs</b> world-space tangent V</li>
+        <li><b>vNormalWs</b> geometric normals</li>
+    </ul>
+
+    <h3>CalculateCameraToPositionDirTs</h3>
+    <p>
+        Returns a <i>normalized tangent-space direction vector</i> from camera to pixel's position.  
+    </p>
+    <pre><code class="language-hlsl">
+float3 CalculateCameraToPositionDirTs( float3 vPositionWs, float3 vTangentUWs, float3 vTangentVWs, float3 vNormalWs )
+    </code></pre>
+
+    <hr>
+
+    <h2>Color Luminance/Saturation</h2>
+    <p>
+        Two functions that allow getting color's luminance or adjusting saturation. 
+    </p>
+
+    <h3>Luminance</h3>
+    <p>
+        Grabs <string>float3</string> color as an input and converts it into <string>float</string> black-and-white colors. 
+    </p>
+    <pre><code class="language-hlsl">
+float Luminance( float3 cColor )
+    </code></pre>
+
+    <h3>SaturateColor</h3>
+    <p>
+        Adjusts color saturation. Target saturation of <b>1</b> will remain image unchanged, <b>0</b> will make the image 
+        black-and-white, and values higher than 1 will increase color's saturation. 
+    </p>
+    <pre><code class="language-hlsl">
+float3 SaturateColor( float3 cColor, float flTargetSaturation )
+    </code></pre>
+
+    <hr>
+
+    <h2>sRGB Gamma Conversions</h2>
+    <p>
+        Helper functions to convert colors from sRGB gamma color space to linear, and vice versa. Commonly used for vertex colors, 
+        but can be used for any other cases.
+    </p>
+
+    <h3>SrgbGammaToLinear</h3>
+    <p>
+        Converts the color from sRGB color space to linear. 
+    </p>
+    <pre><code class="language-hlsl">
+float3 SrgbGammaToLinear( float3 vSrgbGammaColor )
+    </code></pre>
+
+    <h3>SrgbLinearToGamma</h3>
+    <p>
+        Converts the color from linear color space to sRGB. 
+    </p>
+    <pre><code class="language-hlsl">
+float3 SrgbLinearToGamma( float3 vLinearColor )
+    </code></pre>
+
+    <hr>
+
+    <h2>Miscellaneous</h2>
+    <p>
+        I couldn't find a better place for these functions, but they do exist.
+    </p>
+
+    <h3>ClampToPositive</h3>
+    <p>
+        Clamps the value to always stay in positive range. Supports <string>float</string>, <string>float2</string>,
+        <string>float3</string> and <string>float4</string>. Under the hood, it just performs <b>max( 0, value )</b>.
+    </p>
+    <pre><code class="language-hlsl">
+float ClampToPositive( float flValue )
+    </code></pre>
+
+    <h3>CalculateCameraReflectionDirWs</h3>
+    <p>
+        Calculates world-space reflection vector.  
+    </p>
+    <pre><code class="language-hlsl">
+float3 CalculateCameraReflectionDirWs( float3 vPositionWs, float3 vNormalWs )
+    </code></pre>
+    <ul>
+        <li><b>vPositionWs</b> world-space pixel position</li>
+        <li><b>vNormalWs</b> world-space normal vector</li>
+    </ul>
+
+</div>
