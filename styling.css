@@ -581,13 +581,17 @@ a.dl {
 }
 
 .headers {
-    position: fixed;
-    z-index: 999; /* ugh */
+position: fixed;
+    z-index: 999;
     right: 50px;
     max-width: 350px;
     width: 350px;
+    bottom: 32px;
     top: 80px;
     padding: 10 25px;
+    overflow-y: auto;
+    overflow-x: clip;
+    text-overflow: ellipsis;
     
 }
     .headers .current {
@@ -597,10 +601,12 @@ a.dl {
     .headers span {
         display: block;
         font-weight: bold;
-        color: var( --pal-text );
+        color: var(--pal-text);
         margin: 5 0;
         transition: all .12s ease-in-out;
-        text-overflow: clip;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
     }
     .headers span:hover {
         cursor: pointer;
