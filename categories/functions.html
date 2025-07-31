@@ -232,14 +232,27 @@ float Roughness::Sample( int2 screenPos, uint msaaSampleIndex = 0 )
 
     <h2>DepthNormals (G-Buffer)</h3>
     <p>
-        This is used in shading model as one of the last operations before returning the finalized pixel. This is intended to 
-        return some of the material data (<b>normals</b> in <string>RGB</string> components, and <b>roughness</b> in <string>A</string>).
-        You probably don't need to ever use this, unless you're writing your own shading model.
+        During depth prepass, (<string>S_MODE_DEPTH</string>) you can write to a special g-buffer, which consists of <b>normal map</b>
+        (stored in <string>RGB</string> components) and <b>roughness</b> (<string>A</string> component). As a result, you will be able 
+        to read normal/roughness map texture from any surface, as long as that material writes to g-buffer. 
+    </p>
+    <p>
+        Writing to g-buffer is handled by standard shading model already. The only requirement for your custom shader is that 
+        you must have <string>Depth( S_MODE_DEPTH )</string> mode defined in your <string>MODES</string> section. Writing to this 
+        buffer outside of depth prepass does nothing. 
+    </p>
+    <p>
+        If you're making your own custom shading model, (or making unlit shader with no model at all, yet want to write to buffer), 
+        you must manually add <string>::Output(...)</string> function. 
     </p>
 
     <h3>Output</h3>
+    <info>
+        This function works only during a depth prepass, when <string>S_MODE_DEPTH</string> is <b>1</b>. During depth prepass, 
+        you must <b>return</b> this function. For example, <string>return DepthNormals::Output( vNormal, flRoughness )</string>.
+    </info>
     <p>
-        Output the contents of material (normal and roughness) to g-buffer. Normal will be remapped to <string>0-1</string> range. 
+        Write the contents of material (normal and roughness) to g-buffer. Normal will be remapped to <string>0-1</string> range. 
         If <string>S_ALPHA_TEST</string> is enabled, g-buffer will write <b>transparency</b> into <string>A</string> instead of 
         roughness. 
     </p>
