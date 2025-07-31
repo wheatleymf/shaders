@@ -260,13 +260,10 @@ bool DepthNormals::WantsDepthNormals()
     <hr>
 
     <h2>BRDF</h2>
-    <info>
-        I don't know what's the fate of these functions. This might be reworked into a proper class sometime in the future, 
-        I don't really know. Sorry for lack of better description for these functions, I'm leaving them here just for the convenience.
-    </info>
     <p>
         This is a collection of various BRDF functions, used by s&box standard shading model to calculate realistic, physically-based 
-        shading on materials. 
+        shading on materials. It also includes a few helper functions. This is not a proper class and doesn't belong to "Classes"
+        folder, so there's a chance that it may be moved/changed sometime in the future. 
     </p>
     <p>
         A BRDF is a function that defines how light is reflected at an opaque surface. It is used in rendering to simulate the way light interacts with surfaces,
@@ -291,15 +288,15 @@ float4 SampleBRDF( float2 vBRDFLookup )
 
     <h3>ComputeGGXBRDF</h3>
     <p>
-        Computes the GGX BRDF term.
+        Computes <b>D</b> (GGX) and <b>G</b> (Schlick-Smidth) combined terms for BRDF specular lobe formula. (<string>D * G</string>)
     </p>
     <pre><code class="language-hlsl">
 float2 ComputeGGXBRDF( float2 vRoughness, float flNdotL, float flNdotV, float flNdotH, float2 vPositionSs )
     </code></pre>
     <ul>
         <li>
-            <b>vRoughness</b> is a float2 vector with surface roughness value. Standard shading model contains roughness 
-            as a two-component vector. 
+            <b>vRoughness</b> is a float2 vector with surface roughness value. I am not entirely sure here, but I suspect that 
+            you're expected to use <b>anisotropic roughness</b> here. 
         </li>
         <li>
             <b>flNdotL</b> dot product between <b>surface normal</b> and light direction.
@@ -315,17 +312,60 @@ float2 ComputeGGXBRDF( float2 vRoughness, float flNdotL, float flNdotV, float fl
         </li>
     </ul>
 
+    <h3>ComputeGGXAnisoBRDF</h3>
+    <p>
+        Computes <b>D</b> (GGX) and <b>G</b> (Schlick-Smidth) combined terms for BRDF <b>anisotropic</b> specular lobe. Anisotropy affects 
+        how reflected specular light stretches around the surface. You can observe this effect on surfaces like brushed metal, kettles,
+        elevator walls, fur or hair.  
+    </p>
+    <pre><code class="language-hlsl">
+float ComputeGGXAnisoBRDF( float2 vRoughness, float flNdotL, float flNdotV, float flNdotH, float flXdotH, float flYdotH, float flVdotH, float2 vPositionSs )
+    </code></pre>
+    <ul>
+        <li>
+            <b>vRoughness</b> must represent <b>anisotropic roughness</b>, you may need to implement your own function to convert 
+            isotropic roughness (standard, scalar surface roughness, usually comes from <string>material.Roughness</string>) 
+            to anisotropic roughness. 
+        </li>
+        <li>
+            <b>flNdotL</b> dot product between <b>surface normal</b> and <b>light direction</b>
+        </li>
+        <li>
+            <b>flNdotV</b> dot product between <b>surface normal</b> and <b>view direction</b>
+        </li>
+        <li>
+            <b>flNdotH</b> dot product between <b>surface normal</b> and <b>half-way vector</b>
+        </li>
+        <li>
+            <b>flXdotH</b> dot product between <b>surface tangent</b> and <b>half-way vector</b>. You can get the world-space tangent 
+            normal from PixelInput struct, <string>vTangentUWs</string>.
+        </li>
+        <li>
+            <b>flYdotH</b> dot product between <b>surface bitangent</b> and <b>half-way vector</b>. Bitangent is also available in 
+            standard PixelInput struct, <string>vTangentVWs</string>. 
+        </li>
+        <li>
+            <b>flVdotH</b> dot product between <b>view direction</b> and <b>half-way vector</b>. 
+        </li>
+        <li>
+            <b>vPositionSs</b> is meant to be screenspace pixel position, but this argument is left unused in the function's code. 
+            It is still necessary to include any <string>float2</string> vector in here so shader actually compiles. 
+        </li>
+    </ul>
+
     <h3>ComputeCharlieSheenBRDF</h3>
     <p>
-        Computes charlie sheen BRDF term.
+        Computes Charlie Sheen BRDF term. This will return a combination of <b>D</b> (GGX) and <b>V</b> (Ashikhmin) terms. 
+        Charlie Sheen is commonly used for calculating physically accurate shading on cloth materials. Cloth is one of those 
+        things that are not perfectly correct with "classic" BRDF formula, (F * D * G) so this is where this formula can be 
+        very helpful. 
     </p>
     <pre><code class="language-hlsl">
 float ComputeCharlieSheenBRDF( float flRoughness, float flNdotL, float flNdotV, float flNdotH )
     </code></pre>
     <ul>
         <li>
-            <b>vRoughness</b> is a float2 vector with surface roughness value. Standard shading model contains roughness 
-            as a two-component vector. 
+            <b>vRoughness</b> is an isotropic roughness value. 
         </li>
         <li>
             <b>flNdotL</b> dot product between <b>surface normal</b> and light direction.
@@ -340,7 +380,9 @@ float ComputeCharlieSheenBRDF( float flRoughness, float flNdotL, float flNdotV, 
     
     <h3>CalcBRDFReflectionFactor</h3>
     <p>
-        Calculates BRDF reflection factor for the specular color. 
+        Calculates BRDF reflection factor for the specular color. I may be very wrong here, but it will be generally 
+        helpful for calculating a nice specular term for indirect lighting, things like environment map probes. (<string>EnvMap</string> class)
+        Internally, it uses <string>SampleBRDF</string> to get the BRDF lookup. 
     </p>
     <pre><code class="language-hlsl">
 float3 CalcBRDFReflectionFactor( float flNDotV, float flRoughness, float3 vSpecularColor )
@@ -359,7 +401,7 @@ float3 CalcBRDFReflectionFactor( float flNDotV, float flRoughness, float3 vSpecu
     
     <h3>IsotropicRoughnessFromAnisotropicRoughness</h3>
     <p>
-        Converts anisotropic (<string>float2</string>) surface roughness to isotropic. 
+        Converts anisotropic roughness (<string>float2</string> vector) to isotropic roughness (scalar <string>float</string>)
     </p>
     <pre><code class="language-hlsl">
 float IsotropicRoughnessFromAnisotropicRoughness( float2 vRoughness )
@@ -367,8 +409,8 @@ float IsotropicRoughnessFromAnisotropicRoughness( float2 vRoughness )
 
     <h3>CalculateGeometricRoughnessFactor</h3>
     <p>
-        Calculates geometric roughness factor using model's geometric normals. In PixelInput struct, they can be accessed 
-        from <string>i.vNormalWs</string>. 
+        Calculates geometric roughness factor using model's geometric normals. Geometric normals can be accessed from standard 
+        PixelInput struct, <stirng>vNormalWs</stirng>. 
     </p>
     <pre><code class="language-hlsl">
 float CalculateGeometricRoughnessFactor( float3 vGeometricNormalWs )
@@ -388,6 +430,19 @@ float2 AdjustRoughnessByGeometricNormal( float2 vRoughness, float3 vGeometricNor
     <p>
         I can't think of a better name for this category yet. Functions that are usually used only in vertex shaders.
     </p>
+
+    <h3>CalculateInstancingObjectToWorldMatrix</h3>
+    <p>
+        Returns <b>Object to World</b> matrix, which contains data like object's origin position in world space, rotation,
+        and scale. This will only return the matrix itself, you'll still need to extract specific data yourself. It can be done 
+        the same way as you might do it in Unity.
+    </p>
+    <pre><code class="language-hlsl">
+float3x4 CalculateInstancingObjectToWorldMatrix( i )
+    </code></pre>
+    <ul>
+        <li><b>i</b> is expected to be your <b>VertexInput</b> struct.</li>
+    </ul>
 
     <h3>Position3WsToPs</h3>
     <p>
