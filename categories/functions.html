@@ -301,15 +301,15 @@ float4 SampleBRDF( float2 vBRDFLookup )
 
     <h3>ComputeGGXBRDF</h3>
     <p>
-        Computes <b>D</b> (GGX) and <b>G</b> (Schlick-Smidth) combined terms for BRDF specular lobe formula. (<string>D * G</string>)
+        Computes two combined <b>D</b> (Trowbridge-Reitz/GGX) and <b>G</b> (Schlick-Smith) terms for BRDF specular lobe formula.
+        The resulting lobes can be linearly interpolated by some value for a very basic coat-type effect, or one can be discarded by only using the <b>x</b> component of the returned value.
     </p>
     <pre><code class="language-hlsl">
 float2 ComputeGGXBRDF( float2 vRoughness, float flNdotL, float flNdotV, float flNdotH, float2 vPositionSs )
     </code></pre>
     <ul>
         <li>
-            <b>vRoughness</b> is a float2 vector with surface roughness value. I am not entirely sure here, but I suspect that 
-            you're expected to use <b>anisotropic roughness</b> here. 
+            <b>vRoughness</b> is a float2 vector containing the <b>surface roughness</b> values for each of the two specular lobes.
         </li>
         <li>
             <b>flNdotL</b> dot product between <b>surface normal</b> and light direction.
@@ -321,13 +321,13 @@ float2 ComputeGGXBRDF( float2 vRoughness, float flNdotL, float flNdotV, float fl
             <b>flNdotH</b> dot product between <b>surface normal</b> and <b>half-way vector</b> (magnitude between view and light vectors) 
         </li>
         <li>
-            <b>vPositionSs</b> screen-space pixel position (<string>i.vPositionSs</string>)
+            <b>vPositionSs</b> screen-space pixel position, unusued by function. (<string>0.0.xx</string>)
         </li>
     </ul>
 
     <h3>ComputeGGXAnisoBRDF</h3>
     <p>
-        Computes <b>D</b> (GGX) and <b>G</b> (Schlick-Smidth) combined terms for BRDF <b>anisotropic</b> specular lobe. Anisotropy affects 
+        Computes <b>D</b> (Trowbridge-Reitz/GGX) and <b>G</b> (Schlick-Smith) combined terms for BRDF <b>anisotropic</b> specular lobe. Anisotropy affects 
         how reflected specular light stretches around the surface. You can observe this effect on surfaces like brushed metal, kettles,
         elevator walls, fur or hair.  
     </p>
@@ -336,9 +336,8 @@ float ComputeGGXAnisoBRDF( float2 vRoughness, float flNdotL, float flNdotV, floa
     </code></pre>
     <ul>
         <li>
-            <b>vRoughness</b> must represent <b>anisotropic roughness</b>, you may need to implement your own function to convert 
-            isotropic roughness (standard, scalar surface roughness, usually comes from <string>material.Roughness</string>) 
-            to anisotropic roughness. 
+            <b>vRoughness</b> is a float2 vector containing the <b>surface roughness</b> along the <b>surface tangent</b> in the <b>x</b> component,
+            and the <b>surface roughness</b> along the <b>surface bitangent</b> in the <b>y</b> component.
         </li>
         <li>
             <b>flNdotL</b> dot product between <b>surface normal</b> and <b>light direction</b>
@@ -361,14 +360,13 @@ float ComputeGGXAnisoBRDF( float2 vRoughness, float flNdotL, float flNdotV, floa
             <b>flVdotH</b> dot product between <b>view direction</b> and <b>half-way vector</b>. 
         </li>
         <li>
-            <b>vPositionSs</b> is meant to be screenspace pixel position, but this argument is left unused in the function's code. 
-            It is still necessary to include any <string>float2</string> vector in here so shader actually compiles. 
+            <b>vPositionSs</b> screen-space pixel position, unusued by function. (<string>0.0.xx</string>)
         </li>
     </ul>
 
     <h3>ComputeCharlieSheenBRDF</h3>
     <p>
-        Computes Charlie Sheen BRDF term. This will return a combination of <b>D</b> (GGX) and <b>V</b> (Ashikhmin) terms. 
+        Computes Charlie Sheen BRDF term. This will return a combination of <b>D</b> (Estevez-Kulla) and <b>V</b> (Ashikhmin-Premože) terms. 
         Charlie Sheen is commonly used for calculating physically accurate shading on cloth materials. Cloth is one of those 
         things that are not perfectly correct with "classic" BRDF formula, (F * D * G) so this is where this formula can be 
         very helpful. 
@@ -378,7 +376,7 @@ float ComputeCharlieSheenBRDF( float flRoughness, float flNdotL, float flNdotV, 
     </code></pre>
     <ul>
         <li>
-            <b>vRoughness</b> is an isotropic roughness value. 
+            <b>flRoughness</b> is an isotropic roughness value. 
         </li>
         <li>
             <b>flNdotL</b> dot product between <b>surface normal</b> and light direction.
