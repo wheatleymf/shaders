@@ -13,6 +13,30 @@
         If you're backporting an old shader and making it compatible with modern s&box, this article should help with converting 
         some old bits into modern API.
     </p>
+    
+    <h2>CalculateInstancingObjectToWorldMatrix</h2>
+    <p>
+       This is a very old function that used to work until August 2025. This helper function takes your <b>vertex input</b> struct 
+       and returns <string>float3x4</string> transform matrix, which holds position, scale and rotation of your model. It is no longer 
+       working, and you're recommended to use <string>GetTransformMatrix</string> instead.  
+    </p>
+    <p>
+        This is how some old shaders used to copy transform matrix:
+    </p>
+    <pre><code class="language-hlsl">
+float3x4 matObjectToWorld = CalculateInstancingObjectToWorldMatrix( i );
+    </code></pre>
+    <p>
+        Today, it is recommended to use <b>GetTransformMatrix</b>, this is how you can do it: 
+    </p>
+    <pre><code class="language-hlsl">
+float3x4 matObjectToWorld = GetTransformMatrix( i.nInstanceTransformID );
+    </code></pre>
+    <p>
+        <string>nInstanceTransformID</string> is the unique ID for your current model's instance. This is an integer that
+        you can find inside of a <b>vertex input</b> struct. This function returns the same matrix as previous method, 
+        so it is a very easy fix for old shaders. 
+    </p>
 
     <h2>VrForward()</h2>
     <p>
