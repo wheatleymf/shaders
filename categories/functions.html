@@ -439,34 +439,37 @@ float2 AdjustRoughnessByGeometricNormal( float2 vRoughness, float3 vGeometricNor
 
     <hr>
 
-    <h2>Vertex Stuff</h2>
+    <h2>Transform Matrix</h2>
     <p>
-        I can't think of a better name for this category yet. Functions that are usually used only in vertex shaders.
+        You can get transform matrix of your model right from vertex shader. It also comes with an extra helper that allows you 
+        quickly extracting model's scale. 
     </p>
-
-    <h3>CalculateInstancingObjectToWorldMatrix</h3>
+    
+    <h3>GetTransformMatrix</h3>
     <p>
-        Returns <b>Object to World</b> matrix, which contains data like object's origin position in world space, rotation,
-        and scale. This will only return the matrix itself, you'll still need to extract specific data yourself. It can be done 
-        the same way as you might do it in Unity.
+        Returns a <string>float3x4</string> (object to world) transform matrix of current mesh instance. This matrix holds 
+        everything about the transform of your object on scene: position, scale, and rotation. You can extract this data by accessing 
+        specific rows/columns in this matrix.   
     </p>
     <pre><code class="language-hlsl">
-float3x4 CalculateInstancingObjectToWorldMatrix( i )
+float3x4 GetTransformMatrix( int nInstanceTransformID );
     </code></pre>
     <ul>
-        <li><b>i</b> is expected to be your <b>VertexInput</b> struct.</li>
+        <li><b>nInstanceTransformID</b> is the ID of current mesh instance. This ID can be accessed from <b>VertexInput</b> struct 
+        under this name. VertexInput can be accessed and modified in vertex shader.</li>
     </ul>
 
-    <h3>Position3WsToPs</h3>
+    <h3>ComputeMatrixScale</h3>
     <p>
-        Converts world-space vertex position to projection space. If you're editing vertices in <string>vPositionWs</string>, 
-        it is necessary to use this function to convert them to projection space for <string>vPositionPs</string>. 
+        This is a helper that extracts and calculates the object scale from transform matrix. 
+        Returns a <string>float3</string> vector that represents mesh scale for all axis. (XYZ)
     </p>
     <pre><code class="language-hlsl">
-float4 Position3WsToPs( float3 vPositionWs )
+float3 ComputeMatrixScale( float3x4 transformMatrix )
     </code></pre>
     <ul>
-        <li><b>vPositionWs</b> world-space vertex position</li>
+        <b>transformMatrix</b> must be your object's transform matrix. You can get it by using <string>GetTransformMatrix</string>
+        function.
     </ul>
 
     <hr>
@@ -603,6 +606,24 @@ float3 SrgbLinearToGamma( float3 vLinearColor )
     <p>
         I couldn't find a better place for these functions, but they do exist.
     </p>
+
+    <h3>Position3WsToPs</h3>
+    <p>
+        Converts world-space coordinates into projection space. This function is often used to convert vertices 
+        into projection space in vertex shaders, which is required for correct mesh rendering. 
+        However, you can use this function from anywhere, for any purposes.
+    </p>
+    <p>
+        This function can be also used from geometry or compute shaders if you're doing something like frustum culling. However, 
+        you have to keep in mind that this function will not work if your compute shader is being dispatched <b>outside of</b>
+        render context. 
+    </p>
+    <pre><code class="language-hlsl">
+float4 Position3WsToPs( float3 vPositionWs )
+    </code></pre>
+    <ul>
+        <li><b>vPositionWs</b> world-space position</li>
+    </ul>
 
     <h3>ClampToPositive</h3>
     <p>
