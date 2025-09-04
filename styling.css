@@ -65,6 +65,8 @@ body {
     overflow-x: hidden;
 }
 
+/* ARTICLE NAVIGATION */
+
 .navigation.mobile.displaying {
     left: 0;
 
@@ -87,6 +89,20 @@ body {
     display: flex;
     flex-flow: column;
     transition: left .15s ease-in-out;
+}
+
+/* Bunch of overrides if window is too small to fit navigation and contents */ 
+@media ( max-width: 800px ) {
+    .navigation {
+        display: none;
+    }
+    .contents {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+    .Article {
+        max-width: 80% !important;
+    }
 }
 
 .navigation p {
@@ -170,10 +186,9 @@ body {
     display: inline;
 }
 
-/* Not real cats unfortunately */
+/* Not actual cats unfortunately */
 .navigation .cats {
     overflow-y: scroll;
-
     scrollbar-color: var(--pal-text) #00000000;
     scrollbar-width: thin;
     direction: rtl;
@@ -231,16 +246,12 @@ body {
 
 /* CONTENTS */
 
-
 .contents 
 {
     color: var(--pal-article-text);
     font-weight: 400;
-    padding: 64px;
     margin-left: 380px;
-    min-width: 50%;
-    width: 60%;
-    max-width: 60%;
+    width: calc( 100% - 380px );
 }
 .contents h1 {
     margin: 0;
@@ -343,11 +354,15 @@ body {
     margin-left: 0;
     width: 100%;
     max-width: 100%;
-    padding: 25 25;
-    padding-top: 64px;
 }
 .contents.mobile .Article {
     padding-left: 0;
+    max-width: 100%;
+    padding: 0px 24px;
+}
+.contents.mobile .ArticleHeader {
+    padding: 42px 24;
+    background: var(--pal-bg);
 }
 .contents.mobile p {
     margin: 30 0;
@@ -541,7 +556,15 @@ a.dl {
     display: flex;
     flex-direction: row;
     align-items: center;
+    padding: 42px 70px 42px 104px;
+    width: 100%;
+    background: linear-gradient(90deg, #d9e1e9 0%, var(--pal-bg) 5%, var(--pal-bg) 100%);
 }
+/* Stupid ass hack to get rid of the gradien in dark mode */
+body.night .contents .ArticleHeader {
+    background: var( --pal-bg);
+}
+
 .contents .ArticleHeader .icon {
     display: flex;
     align-items: center;
@@ -574,26 +597,33 @@ a.dl {
 /* HEADERS */
 /* That little thing that displays all headers and sub-headers for quick navigation across the article */ 
 
-@media ( max-width: 1800px ) {
+@media ( max-width: 1550px ) {
     .headers {
         display: none;
     }
 }
 
 .headers {
-position: fixed;
+    position: absolute;
     z-index: 999;
     right: 50px;
     max-width: 350px;
     width: 350px;
-    bottom: 32px;
-    top: 80px;
+    bottom: -160px;
+    top: 190px;
     padding: 10 25px;
     overflow-y: auto;
     overflow-x: clip;
     text-overflow: ellipsis;
-    
+
+    scrollbar-color: var(--pal-text) #00000000;
+    scrollbar-width: thin;
 }
+    .headers.fixed {
+        position: fixed;
+        top: 32px;
+        bottom: 32px;
+    }
     .headers .current {
         color: var(--pal-sf);
         margin: 15 0;
@@ -627,6 +657,7 @@ position: fixed;
     margin-top: 42px;
     padding-left: 104px;
     text-align: justify;
+    max-width: 65%;
 }
 
 /* Theme Switcher */
