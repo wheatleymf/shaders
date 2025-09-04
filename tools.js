@@ -11,6 +11,7 @@ let loaderTarget = document.querySelector( ".loader" );
 
 const Header = document.title;
 const QuickNavigation = document.querySelector( ".headers" );
+const NavigatorTargetHeight = 160;
 
 function HandleStart() {
     window.addEventListener( "load", function() {
@@ -210,6 +211,31 @@ function UpdateSidebar( categoryName )
     currentCategory = callerObject;
     UpdateLoader( false, callerObject );
     callerObject.classList.add( "currentCategory" );
+}
+
+//
+//  Per-scroll update on window's current scroll position, if it's below the target, 
+//  switch navigator's positioning state to 'fixed'.
+//
+function NavigatorScrollUpdate()
+{
+    if ( window.scrollY >= NavigatorTargetHeight )
+    {
+        QuickNavigation.classList.add( "fixed" );
+    } else {
+        QuickNavigation.classList.remove( "fixed" );
+    }
+}
+
+//
+//  Set up per-scroll update for the navigator and keep monitoring the scroll position.
+//  ...
+//  At this point it makes sense to convert all navigator functionality into a class,
+//  but I honestly just CBA dealing with this, I just want to get this shit done.. 
+//
+function PrepareNavigator()
+{
+    window.addEventListener( "scroll", NavigatorScrollUpdate );
 }
 
 // 
@@ -538,6 +564,7 @@ let RequiresEntry = ReadQuery();
 if ( !RequiresEntry )
     DisplayCategory( "welcome" );
 
+PrepareNavigator();
 Theme.Restore();
 MonitorQueryUpdates();
 EnableMobileMode( isMobile() );
