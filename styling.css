@@ -93,14 +93,14 @@ body {
 
 /* Bunch of overrides if window is too small to fit navigation and contents */ 
 @media ( max-width: 800px ) {
-    .navigation {
+    .navigation:not(.mobile) {
         display: none;
     }
-    .contents {
+    .contents:not(.mobile) {
         margin-left: 0 !important;
         width: 100% !important;
     }
-    .Article {
+    .contents:not(.mobile).Article {
         max-width: 80% !important;
     }
 }
