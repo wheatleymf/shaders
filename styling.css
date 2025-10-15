@@ -464,17 +464,18 @@ body {
     background: var(--pal-bg);
     display: inline-flex;
     align-items: center;
-    border-left: 7px solid var(--pal-text);
+    border-left: 7px solid var(--pal-sf);
     border-radius: 2px;
-    margin: 10 0;
+    margin: 10 5;
     transition: all .12s ease-in-out;
 }
 
 .contributor:hover {
-    background: var(--pal-text );
+    background: var(--pal-sf);
     color: var(--pal-bg);
     cursor: pointer;
-    transform: scale( 1.05 );
+    transform: scale( 1.1 );
+    box-shadow: 10px 0px 45px rgba(0, 0, 0, 0.20);
 }
 
 .contributor img {
@@ -482,6 +483,7 @@ body {
     width: 64px;
     user-select: none;
     pointer-events: none;
+    border-radius: 0px;
 }
 
 .contributor .name {
