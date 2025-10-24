@@ -13,7 +13,68 @@
         If you're backporting an old shader and making it compatible with modern s&box, this article should help with converting 
         some old bits into modern API.
     </p>
-    
+
+    <h2>Dynamic Expressions</h2>
+    <p>
+        Since <b>October 2025</b>, dynamic expressions are no longer suppored in s&box. They allowed people to implement custom rendering 
+        logic into existing shaders. Facepunch finds this implementation not ideal, and wants to provide something better in the future
+        along with a new material editor. 
+    </p>
+    <p>
+        If you had materials that depend on dynamic expressions to override how some things are rendering in shaders you didn't make, 
+        (compiled shaders from cloud/other games with no access to the source code) you will likely need to make a new shader to 
+        re-implement the functionality.
+    </p>
+    <p>
+        Expressions were also used by shader themselves, specifically for evaluating some variable/attribute data before it even 
+        reaches the execution block (vertex/pixel/compute shader, etc..). They also allowed reading the values from features
+        without using static combos: 
+    </p>
+    <pre><code class="language-hlsl">
+FEATURES 
+{
+    Feature( F_SOME_COOL_THING, 0..1, "Special Features" );
+}
+
+...
+
+PS
+{
+    #include "common/pixel.hlsl"
+
+    // Read the value from "Some Cool Thing" feature 
+    int FeatureValue < Expression( F_SOME_COOL_THING ); >; 
+}
+    </code></pre>
+    <p>
+        In some cases it was pretty useful, because it allowed adding some bonus functionality that could be controlled from the 
+        features UI in the material editor. 
+    </p>
+    <p>
+        This is no longer possible, since <string>Expression</string> attribute was removed too. If you had any shader that relied 
+        on this kind of functionality, there's only one workaround that I can possible think of: moving the variable to material 
+        material editor UI as a checkbox, or int slider:
+    </p>
+    <pre><code class="language-hlsl">
+PS
+{
+    #include "common/pixel.hlsl"
+
+    // Re-implement the variable as a checkbox 
+    bool FeatureValue < UiType( CheckBox ); Default( 0 ); UiGroup( "Options/Something, 1" ); >; 
+
+    // If original feature was in range greater than [0..1], you can do this 
+    // as an integer slider instead? (yikes!)
+    int FeatureValue < Default( 0 ); Range( 0, 5 ); UiGroup( "Options/Something, 1" ); >; 
+}
+    </code></pre>
+    <p>
+        This isn't ideal and gets awfully hacky if you had features with more than one option to choose... Whenever new material editor comes out, 
+        I hope it will provide more versatile UI to handle various types of data and variables, or even better, just let us define our own 
+        editors for variables. Material Editor has a good UX, but it can get very limiting when you want to add some unusual features 
+        to your shader. 
+    </p>
+
     <h2>CalculateInstancingObjectToWorldMatrix</h2>
     <p>
        This is a very old function that used to work until August 2025. This helper function takes your <b>vertex input</b> struct 
