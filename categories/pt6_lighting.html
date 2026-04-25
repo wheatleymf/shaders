@@ -7,7 +7,7 @@
     <p>
         <i>
             <b>IN THIS ARTICLE: </b> adding PBR lighting and Material component to our shader. Adding input slots for all 
-            required input slots, material objet, and returning a lit color.
+            required input slots, material object, and returning a lit color.
         </i>
     </p>
     <hr>
@@ -164,13 +164,14 @@ float3 NormalTransformed = TransformNormal( normal, i.vNormalWs, i.vTangentUWs, 
 
     <h2>Material Class</h2>
     <p>
-        I recommend looking up the definition of a Material class mentioned on the docs page above, it shows all available slots you can 
-        fill out. There are two main functions you can use to properly initialize a new Material class:
+        I recommend looking up the definition of a Material Class (<a href="https://github.com/Facepunch/sbox-public/blob/master/game/addons/base/Assets/shaders/common/material.hlsl">GitHub</a>) mentioned on the docs page above,
+        it shows all available slots you can fill out. There are two main functions you can use to properly initialize a new Material class:
 
         <ul>
             <li>
                 <string>Material::From( PixelInput i )</string> will automatically process all required texture inputs and expose them 
-                to Material Editor for you.  
+                to Material Editor for you.
+                <b>Deprecated.</b>
             </li>
             <li>
                 <string>Material::Init()</string> will create a new <b>empty</b> Material class. This does not generate any input slots 

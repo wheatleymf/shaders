@@ -97,10 +97,14 @@ return float4( D_OVERRIDE_COLOR ? OverrideColor : MyTexture.rgb, 1 );
         and <string>Component.ExecuteInEditor</string>. It'll be easier to preview and mess with properties without going into play mode.
     </p>
     <p>
-        Add a public property with <string>Color</string> type and bool property. And add a private variable for <string>ModelRenderer</string>
+        Add a public property with <string>Color</string> type and bool property. And add a private property for <string>ModelRenderer</string>
         component. Make an override for <string>OnEnable()</string>, you have to try grab the ModelRenderer component from this GameObject first. 
     </p>
     <pre><code class="language-csharp">
+[Property] public bool EnableOverride { get; set; } = false;
+[Property] public Color OverrideColor = Color.White;
+private ModelRenderer _modelRenderer;
+
 protected override void OnEnabled()
 {
     // Try to fetch the ModelRenderer component from this GameObject, since this is where
@@ -109,7 +113,7 @@ protected override void OnEnabled()
     {
         _modelRenderer = renderer;
     }
-        else
+    else
     {
         Log.Error( "This GameObject is missing a ModelRenderer component. :(" );
         return;
@@ -132,7 +136,7 @@ protected override void OnEnabled()
     <pre><code class="language-csharp">
 protected override void OnUpdate()
 {
-    if ( !_modelRenderer.IsValid() || _modelRenderer == null )
+    if ( !_modelRenderer.IsValid() )
         return;
 	
     // Get the SceneModel from ModelRenderer component

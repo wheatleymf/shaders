@@ -82,7 +82,7 @@ Feature( F_TINT_BY_MASK, 0..1, "Custom Features" );
     <p>
         Position of stuff that appears in features list is sorted by depending on what was added in the code first. So by adding this feature 
         above the <string>#include</string>, it'll appear above all features added by core shader stuff. There is more functionality to features, 
-        including ways to exclude/require features, adding rules and other fancy things. This page on <a href="https://wiki.facepunch.com/sbox/AnatomyOfVFX#features">s&box wiki explains</a> all available feature things quite well.
+        including ways to exclude/require features, adding rules and other fancy things. This page on <a href="https://web.archive.org/web/20250804184713/https://wiki.facepunch.com/sbox/AnatomyOfVFX#features">s&box wiki explains</a> all available feature things quite well.
     </p>
     <p>
         If you've done it right, this feature will appear in the menu, but it won't do anything yet. We must now create a new static combo 
@@ -216,6 +216,10 @@ return float4( MyTexture.rgb, 1 );
         color texture is being tinted! Instead of changing colors everywhere, it applies tint only on corresponding parts of the mask.
     </p>
     <img src="/media/pt4_materialcombo.png">
+    <info>
+        If you don't have a grayscale texture at hand, there are many already coming with an engine.
+        Open "Texture Browser" for <string>Tint Mask</string> attribute and navigate to Libraries -> Base Library.<br>
+    </info>
 
     <h3>Downsides of Combos</h3>
     <p>
