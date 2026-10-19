@@ -55,7 +55,7 @@
     <h3>Texture2D Input macro</h3>
     <p>
         s&box uses a special macro to add a new texture input that'll be visible in Material Editor. s&box documentation has a good
-        <a href="https://docs.facepunch.com/s/sbox-dev/doc/attributes-and-variables-UMUgpxSzA1">page about it and other attributes</a>,
+        <a href="https://sbox.game/dev/doc/rendering/shaders/attributes-and-variables">page about it and other attributes</a>,
         which is a <string>CreateTexture2D( ... )</string>.
     </p>
     <p>
@@ -147,7 +147,7 @@ Texture2D g_tColor < Channel( RGB, Box( AlbedoMap ), Srgb ); OutputFormat( BC7 )
     <p>
         Next thing in here is <string>OutputFormat(BC7)</string>. This is where you select the <b>compression format</b> for your texture.
         Source 2 comes with a number of compression formats that you can choose, however for most cases <b>BC7</b> or <b>DXT5</b> will be enough.
-        This page on s&box wiki explains really well <a href="https://web.archive.org/web/20250717191911/https://wiki.facepunch.com/sbox/Shaders/TextureFormats">available compression formats and use-cases</a>.
+        This page on s&box wiki explains really well <a href="https://sbox.game/dev/doc/rendering/shaders/attributes-and-variables#output-format">available compression formats and use-cases</a>.
     </p>
     <p>
         Last bit is <string>SrgbRead(true)</string>, which just signals that texture must be read in sRGB color space. Yeah, this is a third time 
@@ -200,7 +200,7 @@ PS
     <h2>Sampling</h2>
     <p> 
         We need to sample our new texture inside fragment shader. This is where our data from <string>PixelInput</string> will come in handy!
-        Before that, lets take a very quick look on the <a href="https://docs.facepunch.com/s/sbox-dev/doc/default-vertex-and-pixel-shader-inputs-WAuOKVmkZ5">structure</a> of <string>PixelInput</string> before we continue.
+        Before that, lets take a very quick look on the <a href="https://sbox.game/dev/doc/rendering/shaders/reference/default-vertex-and-pixel-shader-inputs">structure</a> of <string>PixelInput</string> before we continue.
 
         <ul>
             <li>
@@ -247,14 +247,14 @@ PS
         the following code:
     </p>
     <pre><code class="language-hlsl">
-float3 MyTexture = g_tColor.Sample( g_sAniso, i.vTextureCoords.xy );        
+float3 MyTexture = g_tColor.Sample( g_sAniso, i.vTextureCoords.xy ).rgb;        
     </code></pre>
     <p>
         <string>.Sample()</string> is a special HLSL method that is available for Texture2D objects. First argument <string>g_sAniso</string>
         is a <b>sampler state</b>, which defines how this texture is interpolated. What is <b>g_sAniso</b> anyway?! This is one of the global 
         sampler states available in s&box. Unless you need a very specific sampler state, you can just use existing ones instead. 
         g_sAniso is a sampler state with <b>anisotropic</b> filtering, and <b>wrap</b> method on texture coordinates, which means 
-        it'll stretch the texture to fit given texture coordinates. You can look up all <a href="https://docs.facepunch.com/s/sbox-dev/doc/sampler-states-LlJc7ymJkq#h-common-samplers">available common sampler states here</a>.
+        it'll stretch the texture to fit given texture coordinates. You can look up all <a href="https://sbox.game/dev/doc/rendering/shaders/sampler-states#common-samplers">available common sampler states here</a>.
     </p>
     <p>
         As it's been mentioned before, SamplerState supports various filter modes. <string>Point</string> filter would give your texture 
@@ -329,7 +329,7 @@ PS
     {
         // Sample our texture2D with a common sampler state (anisotropic filter) and given texture coordinates.
         // Our texture2D has only RGB channels, so we'll use float3 for it. 
-        float3 MyTexture = g_tColor.Sample( g_sAniso, i.vTextureCoords.xy );
+        float3 MyTexture = g_tColor.Sample( g_sAniso, i.vTextureCoords.xy ).rgb;
         
         // Return a final pixel, with RGB values of our new texture, and forced opacity at 1. 
         return float4( MyTexture, 1 );
@@ -352,7 +352,7 @@ PS
 float TextureScale < UiType( Slider ); Range( 0, 5 ); Default( 1 ); UiGroup("My Material,10/11"); >;
     </code></pre>
     <p>
-        Let me point to this <a href="https://docs.facepunch.com/s/sbox-dev/doc/attributes-and-variables-UMUgpxSzA1">s&box documentation page</a>
+        Let me point to this <a href="https://sbox.game/dev/doc/rendering/shaders/attributes-and-variables#reference">s&box documentation page</a>
         on attributes once again, since it break downs pretty much everything you need to know. But lets review each property in this annotation anyway...
 
         <ul>
@@ -510,7 +510,7 @@ uv += g_flTime * TextureScrollSpeed * TextureScrollDirection;
         </ul>
     </p>
     <p>
-        There's plenty of others variables available. You can see a list in <a href="https://docs.facepunch.com/s/sbox-dev/doc/global-variables-kSdlbnBNq8">official s&box documentation</a>
+        There's plenty of others variables available. You can see a list in <a href="https://sbox.game/dev/doc/rendering/shaders/reference/global-variables">official s&box documentation</a>
         (or full list in <string>game/core/shaders/common.fxc</string> on <a href="https://github.com/Facepunch/sbox-public/blob/master/game/core/shaders/common.fxc">GitHub</a>).
     </p>
 
