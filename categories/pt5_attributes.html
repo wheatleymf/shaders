@@ -45,9 +45,20 @@ float3 OverrideColor < Attribute( "MyOverrideColor" ); >;
         to fallback to a specific value instead of appearing black ( <string>float3(0, 0, 0)</string> ) when there's no data assigned to this property 
         from your C# code.
     </p>
+  
+    <p> 
+        Next, we'll add a dynamic combo right below our last defined static combo <string>S_TINT_BY_MASK</string> to toggle this attribute on and off. 
+    <pre><code class="language-hlsl">
+DynamicCombo(D_OVERRIDE_COLOR, 0..1, Sys( ALL ) );
+    </code></pre>
+    </p>
+    <info>
+    There's no necessity to wrap this behind a dynamic combo, since it's going to exist in all shader variants. Instead, You can just write a variable with an attribute annotation.
+    <string> bool OverrideColorEnabled < Attribute("MyOverrideColorEnabled") >; </string>
+    </info>
+
     <p>
-        There's no necessity to wrap this behind a dynamic combo, so it's going to exist in all shader variants. Now you should 
-        update the code for the pixel we're returning in <string>MainPs</string>. Let's do something neat: instead of using 
+        Now you should update the code for the pixel we're returning in <string>MainPs</string>. Let's do something neat: instead of using 
         a bulky if-statement with our dynamic combo, you can just use a classic ternary operator instead. 
     </p>
     <pre><code class="language-hlsl">
