@@ -52,7 +52,7 @@ VS
         // In fragment shader, you'll be able to use vertex colors by accessing i.vVertexColor. :-) 
         o.vVertexColor.rgb = i.vColor.rgb;
 
-		o.vPositionWs.z += sin( (o.vPositionWs.xy / 50) + (g_flTime * 8) ) * 10;
+		o.vPositionWs.z += sin( (length(o.vPositionWs.xy) / 50) + (g_flTime * 8) ) * 10;
 		o.vPositionPs = Position3WsToPs( o.vPositionWs.xyz );
 
         return FinalizeVertex( o );

@@ -204,7 +204,7 @@ float RemapValClamped( float flOldVal, float flOldMin, float flOldMax, float flN
         Use the sin wave and XY components of vertex coords, and use it to distort vertices. 
     </p>
     <pre><code class="language-hlsl">
-o.vPositionWs.z += sin( (o.vPositionWs.xy / 50) + (g_flTime * 8) ) * 10;
+o.vPositionWs.z += sin( (length(o.vPositionWs.xy) / 50) + (g_flTime * 8) ) * 10;
 o.vPositionPs = Position3WsToPs( o.vPositionWs.xyz );
     </code></pre>
     <p>
