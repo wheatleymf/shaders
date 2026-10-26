@@ -157,14 +157,14 @@ float3 NormalTransformed = TransformNormal( normal, i.vNormalWs, i.vTangentUWs, 
         While these effects won't be a subject of this article, I'll probably show them sometime later in the future. 
     </p>
     <p>
-        But where do all these texture go after all this? This is where everything goes in a special <a href="https://docs.facepunch.com/s/sbox-dev/doc/material-gVbbmBfLmp">Material class</a>. 
+        But where do all these texture go after all this? This is where everything goes in a special <a href="https://sbox.game/dev/doc/rendering/shaders/material">Material class</a>. 
         It contains all necessary slots required for PBR, and s&box default shading model relies on this class to pass all textures 
         and other important data. 
     </p>
 
     <h2>Material Class</h2>
     <p>
-        I recommend looking up the definition of a Material Class (<a href="https://github.com/Facepunch/sbox-public/blob/master/game/addons/base/Assets/shaders/common/material.hlsl">GitHub</a>) mentioned on the docs page above,
+        I recommend looking up the definition of a Material Class (<a href="https://github.com/Facepunch/sbox-public/blob/master/game/core/shaders/common/material.hlsl">GitHub</a>) mentioned on the docs page above,
         it shows all available slots you can fill out. There are two main functions you can use to properly initialize a new Material class:
 
         <ul>

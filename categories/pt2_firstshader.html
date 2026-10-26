@@ -54,7 +54,7 @@ FEATURES
 
 // MODES implements shader modes. They define ways your shader will render
 // under different passes or conditions. 
-// https://docs.facepunch.com/s/sbox-dev/doc/modes-SFu3UxPnhm
+// https://sbox.game/dev/doc/rendering/shaders/modes
 MODES 
 {
     // This is a main rendering mode. You may want to always include it. 
@@ -119,7 +119,7 @@ FEATURES
     <p>
         Lets add the MODES block. This block defines how our shader is handled in different passes. 
         For now, we need only <string>VrForward()</string>.
-        You can see all available modes on the s&box documentation page <a href="https://docs.facepunch.com/s/sbox-dev/doc/modes-SFu3UxPnhm">here</a>. 
+        You can see all available modes on the s&box documentation page <a href="https://sbox.game/dev/doc/rendering/shaders/modes">here</a>. 
         <ul>
             <li>
                 <string>Forward()</string> is a standard rendering mode. This is where all primary rendering happens, your shader won't 
@@ -213,7 +213,7 @@ struct VertexInput
     </code></pre>
     <p>
         Perfect! When you reference this struct in vertex shader, it'll automatically read the struct data from the included .hlsl file.
-        If you want to read more about vertex and pixel structs, s&box docs have a <a href="https://docs.facepunch.com/s/sbox-dev/doc/default-vertex-and-pixel-shader-inputs-WAuOKVmkZ5">dedicated page for them</a>.
+        If you want to read more about vertex and pixel structs, s&box docs have a <a href="https://sbox.game/dev/doc/rendering/shaders/reference/default-vertex-and-pixel-shader-inputs">dedicated page for them</a>.
     </p>
 
     <h3>Pixel Shader Input Struct</h3>
@@ -264,7 +264,7 @@ struct PixelInput
             </li>
         </ul>
     </p>
-    <p>These vertex helpers are documented on the <a href="https://docs.facepunch.com/s/sbox-dev/doc/vertex-helpers-WfXQx29bUF">s&box documentation website</a></p>.
+    <p>These vertex helpers are documented on the <a href="https://sbox.game/dev/doc/rendering/shaders/reference/vertex-helpers">s&box documentation website</a></p>.
 
     <h3>Implementing the Vertex Shader</h3>
     <p>
