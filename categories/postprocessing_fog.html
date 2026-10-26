@@ -94,7 +94,7 @@ PS
 }
     </code></pre>
     <p>
-        Wow, what is <string>Depth.hlsl</string>? This is HLSL file that defines a very useful <a href="https://docs.facepunch.com/s/sbox-dev/doc/depth-TeFIlRYujJ">Depth class</a>. It has it's own texture input 
+        Wow, what is <string>Depth.hlsl</string>? This is HLSL file that defines a very useful <a href="https://sbox.game/dev/doc/rendering/shaders/classes/depth">Depth class</a>. It has it's own texture input 
         for the depth buffer, which is why you don't have to manually pass depth into your post-processing shader. Instead of having to normalize 
         and linearize depth buffer values yourself, depth class already comes with a bunch of functions that do it for you. 
     </p>
@@ -106,7 +106,7 @@ PS
     </p>
     <p>
         You also need to define your own sampler state. None of the included common post-processing files contain
-        <a href="https://docs.facepunch.com/s/sbox-dev/doc/sampler-states-LlJc7ymJkq#h-common-samplers">common sampler states</a>. 
+        <a href="https://sbox.game/dev/doc/rendering/shaders/sampler-states#common-samplers">common sampler states</a>. 
         This is very easy though, just make a new sampler state with filter set to <b>Linear</b>. Nothing else is required.  
     </p>
 
@@ -127,7 +127,7 @@ float3 ColorBuffer = g_tColorBuffer.Sample( sLinear, i.vPositionSs.xy / g_vViewp
 float flLinear = Depth::GetLinear( i.vPositionSs.xy );
     </code></pre>
     <p>
-        Using <a href="https://docs.facepunch.com/s/sbox-dev/doc/depth-TeFIlRYujJ#h-depthlinearize-float-d">linear</a> depth buffer value is perfect in this case. This allows easily building a much nicer fog. 
+        Using <a href="https://sbox.game/dev/doc/rendering/shaders/classes/depth#depthlinearize-float-d-float2-ss-1">linear</a> depth buffer value is perfect in this case. This allows easily building a much nicer fog. 
         Using raw/normalized depth data would be more annoying to work with, because by default depth buffer prioritizes 
         more precision up close, and gets abruptly dark and less precise further away. Linearized depth data makes it easier, 
         since it adjusts the depth value to be a properly linear 0-1 range, with ability to clamp the "end" point in world-space units.
